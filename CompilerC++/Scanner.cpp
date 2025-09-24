@@ -5,7 +5,7 @@
 #include <iostream>
 
 // Простые конструктор и деструктор
-Scanner::Scanner() : text(), uk(0) {}
+Scanner::Scanner() : text(), currentPos(0) {}
 Scanner::~Scanner() {}
 
 bool Scanner::loadFile(const string& fileName) {
@@ -18,21 +18,21 @@ bool Scanner::loadFile(const string& fileName) {
 
     // Добавляем нулевой символ гарантированно
     text.push_back('\0');
-    uk = 0;
+    currentPos = 0;
     return true;
 }
 
 char Scanner::peek(size_t offset) const {
-    size_t pos = uk + offset;
+    size_t pos = currentPos + offset;
     if (pos < text.size()) return text[pos];
     return '\0';
 }
 char Scanner::getChar() {
-    if (uk < text.size()) return text[uk++];
+    if (currentPos < text.size()) return text[currentPos++];
     return '\0';
 }
 void Scanner::ungetChar() {
-    if (uk > 0) --uk;
+    if (currentPos > 0) --currentPos;
 }
 
 // Всевозможные классификации символов

@@ -16,7 +16,7 @@ public:
 
 private:
     string text; // исходный текст + завершающий '\0'
-    size_t uk; // текущая позиция в text
+    size_t currentPos; // текущая позиция в text
 
 	char peek(size_t offset = 0) const; // получить текущий символ, но не сдвигать позицию
 	char getChar(); // получить текущий символ и сдвинуть позицию
