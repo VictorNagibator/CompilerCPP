@@ -1,4 +1,4 @@
-#include "Scanner.h"
+﻿#include "Scanner.h"
 
 #include <iostream>
 
@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
 
     Scanner sc;
     if (!sc.loadFile(fname)) {
-        cerr << "Cannot open " << fname << endl;
+        cerr << "Не удалось открыть " << fname << endl;
         return 2;
     }
 
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
         }
         cout << lex << "  (token=" << tok << ")\n";
         if (tok == T_ERR) {
-            cerr << "����������� ������: \"" << lex << "\"\n";
+            cerr << "Лексическая ошибка: \"" << lex << "\"\n";
             break;
         }
     }

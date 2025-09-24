@@ -1,9 +1,9 @@
-#include "scanner.h"
+п»ї#include "scanner.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
-// Простые конструктор и деструктор
+// РџСЂРѕСЃС‚С‹Рµ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ Рё РґРµСЃС‚СЂСѓРєС‚РѕСЂ
 Scanner::Scanner() : text(), uk(0) {}
 Scanner::~Scanner() {}
 
@@ -15,7 +15,7 @@ bool Scanner::loadFile(const string& fileName) {
     ss << in.rdbuf();
     text = ss.str();
 
-    // Добавляем нулевой символ гарантированно
+    // Р”РѕР±Р°РІР»СЏРµРј РЅСѓР»РµРІРѕР№ СЃРёРјРІРѕР» РіР°СЂР°РЅС‚РёСЂРѕРІР°РЅРЅРѕ
     text.push_back('\0');
     uk = 0;
     return true;
@@ -34,7 +34,7 @@ void Scanner::ungetChar() {
     if (uk > 0) --uk;
 }
 
-// Всевозможные классификации символов
+// Р’СЃРµРІРѕР·РјРѕР¶РЅС‹Рµ РєР»Р°СЃСЃРёС„РёРєР°С†РёРё СЃРёРјРІРѕР»РѕРІ
 bool Scanner::isLetter(char c) {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
@@ -51,7 +51,7 @@ bool Scanner::isIdentPart(char c) {
     return isLetter(c) || isDigit(c) || c == '_';
 }
 
-// Проверка ключевых слов: возвращает соответствующий KW_* или IDENT
+// РџСЂРѕРІРµСЂРєР° РєР»СЋС‡РµРІС‹С… СЃР»РѕРІ: РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёР№ KW_* РёР»Рё IDENT
 int Scanner::checkKeyword(const string& s) {
     if (s == "int") return KW_INT;
     if (s == "short") return KW_SHORT;
@@ -62,16 +62,16 @@ int Scanner::checkKeyword(const string& s) {
     if (s == "case") return KW_CASE;
     if (s == "default") return KW_DEFAULT;
     if (s == "break") return KW_BREAK;
-    if (s == "true") return KW_TRUE; // булевы константы распознаются как ключевые слова
+    if (s == "true") return KW_TRUE; // Р±СѓР»РµРІС‹ РєРѕРЅСЃС‚Р°РЅС‚С‹ СЂР°СЃРїРѕР·РЅР°СЋС‚СЃСЏ РєР°Рє РєР»СЋС‡РµРІС‹Рµ СЃР»РѕРІР°
     if (s == "false") return KW_FALSE;
     return IDENT;
 }
 
-// Пропустить пробелы и комментарии (// и /* ... */)
+// РџСЂРѕРїСѓСЃС‚РёС‚СЊ РїСЂРѕР±РµР»С‹ Рё РєРѕРјРјРµРЅС‚Р°СЂРёРё (// Рё /* ... */)
 void Scanner::skipIgnored() {
     for (;;) {
         char c = peek();
-        // пробелы / табуляция / перевод строки / возврат каретки
+        // РїСЂРѕР±РµР»С‹ / С‚Р°Р±СѓР»СЏС†РёСЏ / РїРµСЂРµРІРѕРґ СЃС‚СЂРѕРєРё / РІРѕР·РІСЂР°С‚ РєР°СЂРµС‚РєРё
         if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
             getChar();
             continue;
@@ -79,46 +79,46 @@ void Scanner::skipIgnored() {
         if (c == '/') {
             char n = peek(1);
             if (n == '/') {
-                // однострочный комментарий: consume '//' и читать до LF или EOF
+                // РѕРґРЅРѕСЃС‚СЂРѕС‡РЅС‹Р№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: consume '//' Рё С‡РёС‚Р°С‚СЊ РґРѕ LF РёР»Рё EOF
                 getChar(); getChar();
                 while (peek() != '\n' && peek() != '\0') getChar();
-                // оставим newline на следующем проходе
+                // РѕСЃС‚Р°РІРёРј newline РЅР° СЃР»РµРґСѓСЋС‰РµРј РїСЂРѕС…РѕРґРµ
                 continue;
             }
             else if (n == '*') {
-                // блочный комментарий /* ... */
-                getChar(); getChar(); // убираем '/*'
+                // Р±Р»РѕС‡РЅС‹Р№ РєРѕРјРјРµРЅС‚Р°СЂРёР№ /* ... */
+                getChar(); getChar(); // СѓР±РёСЂР°РµРј '/*'
                 bool closed = false;
                 while (peek() != '\0') {
                     char ch = getChar();
                     if (ch == '*' && peek() == '/') {
-                        getChar(); // убираем '/'
+                        getChar(); // СѓР±РёСЂР°РµРј '/'
                         closed = true;
                         break;
                     }
                 }
                 if (!closed) {
-                    // незакрытый комментарий
+                    // РЅРµР·Р°РєСЂС‹С‚С‹Р№ РєРѕРјРјРµРЅС‚Р°СЂРёР№
                     return;
                 }
                 continue;
             }
         }
-        break; // нет игнорируемых символов
+        break; // РЅРµС‚ РёРіРЅРѕСЂРёСЂСѓРµРјС‹С… СЃРёРјРІРѕР»РѕРІ
     }
 }
 
-// Основной метод: получить следующую лексему
+// РћСЃРЅРѕРІРЅРѕР№ РјРµС‚РѕРґ: РїРѕР»СѓС‡РёС‚СЊ СЃР»РµРґСѓСЋС‰СѓСЋ Р»РµРєСЃРµРјСѓ
 int Scanner::getNextToken(string& outLex) {
     outLex.clear();
 
-	//Пропускаем игнорируемые символы
+	//РџСЂРѕРїСѓСЃРєР°РµРј РёРіРЅРѕСЂРёСЂСѓРµРјС‹Рµ СЃРёРјРІРѕР»С‹
     skipIgnored();
 
     char c = peek();
     if (c == '\0') { return T_END; }
 
-    // Идентификатор или ключевое слово
+    // РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РёР»Рё РєР»СЋС‡РµРІРѕРµ СЃР»РѕРІРѕ
     if (isIdentStart(c)) {
         string lex;
         lex.push_back(getChar());
@@ -128,18 +128,18 @@ int Scanner::getNextToken(string& outLex) {
         return code;
     }
 
-	// Десятичные и шестнадацатеричные числа
+	// Р”РµСЃСЏС‚РёС‡РЅС‹Рµ Рё С€РµСЃС‚РЅР°РґР°С†Р°С‚РµСЂРёС‡РЅС‹Рµ С‡РёСЃР»Р°
     if (isDigit(c)) {
         char first = getChar();
         if (first == '0') {
             char nx = peek();
             if (nx == 'x' || nx == 'X') {
-                // требуется >=1 16-ричная цифра
-                getChar(); // убираем x/X
+                // С‚СЂРµР±СѓРµС‚СЃСЏ >=1 16-СЂРёС‡РЅР°СЏ С†РёС„СЂР°
+                getChar(); // СѓР±РёСЂР°РµРј x/X
                 string lex = "0";
                 lex.push_back(nx);
                 if (!isHexDigit(peek())) {
-                    // ошибка: 0x без цифр
+                    // РѕС€РёР±РєР°: 0x Р±РµР· С†РёС„СЂ
                     outLex = lex;
                     return T_ERR;
                 }
@@ -148,7 +148,7 @@ int Scanner::getNextToken(string& outLex) {
                 return HEX_CONST;
             }
             else if (isDigit(nx)) {
-                // цифра после 0 - читаем как DEC
+                // С†РёС„СЂР° РїРѕСЃР»Рµ 0 - С‡РёС‚Р°РµРј РєР°Рє DEC
                 string lex;
                 lex.push_back(first);
                 while (isDigit(peek())) lex.push_back(getChar());
@@ -156,13 +156,13 @@ int Scanner::getNextToken(string& outLex) {
                 return DEC_CONST;
             }
             else {
-                // просто '0'
+                // РїСЂРѕСЃС‚Рѕ '0'
                 outLex = "0";
                 return DEC_CONST;
             }
         }
         else {
-            // первая цифра 1..9
+            // РїРµСЂРІР°СЏ С†РёС„СЂР° 1..9
             string lex;
             lex.push_back(first);
             while (isDigit(peek())) lex.push_back(getChar());
@@ -171,7 +171,7 @@ int Scanner::getNextToken(string& outLex) {
         }
     }
 
-    // Операторы и разделители
+    // РћРїРµСЂР°С‚РѕСЂС‹ Рё СЂР°Р·РґРµР»РёС‚РµР»Рё
     char n1 = peek(1);
     switch (c) {
     case '+': getChar(); outLex = "+"; return PLUS;
@@ -192,7 +192,7 @@ int Scanner::getNextToken(string& outLex) {
     case '!':
         getChar();
         if (peek() == '=') { getChar(); outLex = "!="; return NEQ; }
-        // одиночный '!' — лексическая ошибка :)
+        // РѕРґРёРЅРѕС‡РЅС‹Р№ '!' вЂ” Р»РµРєСЃРёС‡РµСЃРєР°СЏ РѕС€РёР±РєР° :)
         outLex = "!"; return T_ERR;
     case '<':
         getChar();
@@ -209,7 +209,7 @@ int Scanner::getNextToken(string& outLex) {
         outLex = "/";
         return DIV;
     default:
-        // неизвестный/недопустимый символ
+        // РЅРµРёР·РІРµСЃС‚РЅС‹Р№/РЅРµРґРѕРїСѓСЃС‚РёРјС‹Р№ СЃРёРјРІРѕР»
     {
         string s;
         s.push_back(getChar());
