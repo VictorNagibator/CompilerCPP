@@ -2,8 +2,13 @@
 #include "Defines.h"
 
 #include <iostream>
+#include <Windows.h>
 
 int main(int argc, char** argv) {
+    // Корректно отображаем русский язык в консоли
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+
     string fname = "input.txt";
     if (argc > 1) fname = argv[1];
 
