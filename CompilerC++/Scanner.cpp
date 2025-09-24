@@ -4,9 +4,8 @@
 #include <sstream>
 #include <iostream>
 
-// Простые конструктор и деструктор
+// В конструкторе текущая позиция = 0, текст пуст
 Scanner::Scanner() : text(), currentPos(0) {}
-Scanner::~Scanner() {}
 
 bool Scanner::loadFile(const string& fileName) {
     ifstream in(fileName);
@@ -16,12 +15,13 @@ bool Scanner::loadFile(const string& fileName) {
     ss << in.rdbuf();
     text = ss.str();
 
-    // Добавляем нулевой символ гарантированно
+    // Добавляем нулевой символ (на всякий случай)
     text.push_back('\0');
     currentPos = 0;
     return true;
 }
 
+// Работа с текущим символом
 char Scanner::peek(size_t offset) const {
     size_t pos = currentPos + offset;
     if (pos < text.size()) return text[pos];
@@ -80,10 +80,9 @@ void Scanner::skipIgnored() {
         if (c == '/') {
             char n = peek(1);
             if (n == '/') {
-                // однострочный комментарий: consume '//' и читать до LF или EOF
+                // однострочный комментарий: убираем '//' и читаем до следующей строки
                 getChar(); getChar();
                 while (peek() != '\n' && peek() != '\0') getChar();
-                // оставим newline на следующем проходе
                 continue;
             }
             else if (n == '*') {
@@ -109,13 +108,14 @@ void Scanner::skipIgnored() {
     }
 }
 
-// Основной метод: получить следующую лексему
+// Основной метод лексера: получить следующую лексему
 int Scanner::getNextLex(string& outLex) {
     outLex.clear();
 
-	//Пропускаем игнорируемые символы
+	// Пропускаем игнорируемые символы
     skipIgnored();
 
+	// Конец текста
     char c = peek();
     if (c == '\0') { return T_END; }
 

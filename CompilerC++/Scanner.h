@@ -5,7 +5,6 @@ using namespace std;
 class Scanner {
 public:
     Scanner();
-    ~Scanner();
 
     // Загрузить файл; вернуть true при успехе
     bool loadFile(const string& fileName);
