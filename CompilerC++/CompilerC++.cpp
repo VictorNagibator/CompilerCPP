@@ -1,4 +1,5 @@
 ﻿#include "Scanner.h"
+#include "Defines.h"
 
 #include <iostream>
 
@@ -14,13 +15,13 @@ int main(int argc, char** argv) {
 
     while (true) {
         string lex;
-        int tok = sc.getNextToken(lex);
-        if (tok == T_END) {
-            cout << "T_END=" << tok << "\n";
+        int code = sc.getNextLex(lex);
+        if (code == T_END) {
+            cout << "T_END=" << code << "\n";
             break;
         }
-        cout << lex << "  (token=" << tok << ")\n";
-        if (tok == T_ERR) {
+        cout << lex << "  (код=" << code << ")\n";
+        if (code == T_ERR) {
             cerr << "Лексическая ошибка: \"" << lex << "\"\n";
             break;
         }

@@ -127,6 +127,7 @@
     <ClCompile Include="Scanner.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Defines.h" />
     <ClInclude Include="Scanner.h" />
   </ItemGroup>
   <ItemGroup>

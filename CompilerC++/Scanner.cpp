@@ -1,4 +1,5 @@
 ﻿#include "scanner.h"
+#include "defines.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -109,7 +110,7 @@ void Scanner::skipIgnored() {
 }
 
 // Основной метод: получить следующую лексему
-int Scanner::getNextToken(string& outLex) {
+int Scanner::getNextLex(string& outLex) {
     outLex.clear();
 
 	//Пропускаем игнорируемые символы
