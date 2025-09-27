@@ -12,6 +12,7 @@
 #define KW_BREAK   9
 #define KW_TRUE    10
 #define KW_FALSE   11
+#define KW_MAIN     12
 
 #define IDENT      20
 

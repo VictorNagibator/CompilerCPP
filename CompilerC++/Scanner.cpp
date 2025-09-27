@@ -4,6 +4,8 @@
 #include <sstream>
 #include <iostream>
 
+#define MAX_CONST_LEN 20 // максимальная длина численной константы
+
 // В конструкторе текущая позиция = 0, текст пуст
 Scanner::Scanner() : text(), currentPos(0) {}
 
@@ -15,7 +17,7 @@ bool Scanner::loadFile(const string& fileName) {
     ss << in.rdbuf();
     text = ss.str();
 
-    // Добавляем нулевой символ (на всякий случай)
+    // Добавляем нулевой символ в конце текста (на всякий случай)
     text.push_back('\0');
     currentPos = 0;
     return true;
@@ -65,6 +67,7 @@ int Scanner::checkKeyword(const string& s) {
     if (s == "break") return KW_BREAK;
     if (s == "true") return KW_TRUE; // булевы константы распознаются как ключевые слова
     if (s == "false") return KW_FALSE;
+    if (s == "main") return KW_MAIN;
     return IDENT;
 }
 
@@ -112,10 +115,10 @@ void Scanner::skipIgnored() {
 int Scanner::getNextLex(string& outLex) {
     outLex.clear();
 
-	// Пропускаем игнорируемые символы
+    // Пропускаем игнорируемые символы
     skipIgnored();
 
-	// Конец текста
+    // Конец текста
     char c = peek();
     if (c == '\0') { return T_END; }
 
@@ -126,10 +129,14 @@ int Scanner::getNextLex(string& outLex) {
         while (isIdentPart(peek())) lex.push_back(getChar());
         int code = checkKeyword(lex);
         outLex = lex;
+
+        if (code == IDENT && lex.length() > MAX_CONST_LEN) return T_ERR;
+
         return code;
     }
 
-	// Десятичные и шестнадацатеричные числа
+
+    // Десятичные и шестнадацатеричные числа
     if (isDigit(c)) {
         char first = getChar();
         if (first == '0') {
@@ -146,6 +153,9 @@ int Scanner::getNextLex(string& outLex) {
                 }
                 while (isHexDigit(peek())) lex.push_back(getChar());
                 outLex = lex;
+
+                if (lex.length() > MAX_CONST_LEN) return T_ERR;
+
                 return HEX_CONST;
             }
             else if (isDigit(nx)) {
@@ -154,6 +164,9 @@ int Scanner::getNextLex(string& outLex) {
                 lex.push_back(first);
                 while (isDigit(peek())) lex.push_back(getChar());
                 outLex = lex;
+
+                if (lex.length() > MAX_CONST_LEN) return T_ERR;
+
                 return DEC_CONST;
             }
             else {
@@ -168,6 +181,9 @@ int Scanner::getNextLex(string& outLex) {
             lex.push_back(first);
             while (isDigit(peek())) lex.push_back(getChar());
             outLex = lex;
+
+            if (lex.length() > MAX_CONST_LEN) return T_ERR;
+
             return DEC_CONST;
         }
     }
