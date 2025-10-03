@@ -1,7 +1,11 @@
-void f() {
-    {
-        int a = 1;
-        a = a + 2;
+void main() {
+    int x = 10;
+    switch (x) {
+        case 0:
+            break;
+        case 1:
+            x = x + 1;
+        default:
+            x = 0;
     }
-    g;
 }

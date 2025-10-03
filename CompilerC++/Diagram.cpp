@@ -74,7 +74,7 @@ void Diagram::Function() {
     int t = nextToken();
     if (t != KW_VOID) error("ожидался 'void' в определении функции");
     t = nextToken();
-    if (t != IDENT) error("ожидалось имя функции (IDENT)");
+    if (t != IDENT && t != KW_MAIN) error("ожидалось имя функции (IDENT)");
     t = nextToken();
     if (t != LPAREN) error("ожидался '(' после имени функции");
 
