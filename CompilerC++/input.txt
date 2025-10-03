@@ -1,2 +1,7 @@
-int a = 0
-int b = 1;
+void f() {
+    {
+        int a = 1;
+        a = a + 2;
+    }
+    g;
+}

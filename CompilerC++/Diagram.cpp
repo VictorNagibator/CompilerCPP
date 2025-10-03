@@ -171,18 +171,29 @@ void Diagram::Stmt() {
 
     // Вариант присваивания: начинается с IDENT
     if (t == IDENT) {
-        // посмотреть следующую лексему: если ASSIGN -> Assign; иначе — синтаксическая ошибка
-        int tokIdent = nextToken(); // consume IDENT
-        int t2 = peekToken();
-        pushBack(tokIdent, curLex); // возвращаем IDENT, Assign разберёт его сам
+        int tokIdent = nextToken(); // читаем IDENT (в curLex хранится имя)
+        int t2 = peekToken(); // смотрим следующую лексему
+
+        // Вернём IDENT обратно — дальнейшие вызовы (Assign/Call) сами его прочитают
+        pushBack(tokIdent, curLex);
+
         if (t2 == ASSIGN) {
+            // Присваивание: IDENT = Expr ;
             Assign();
             t = nextToken();
             if (t != SEMI) error("ожидался ';' после оператора присваивания");
             return;
         }
+        else if (t2 == LPAREN) {
+            // Вызов функции как оператор: IDENT '(' ArgListOpt ')' ;
+            // Разбираем вызов и затем ожидаем ';'
+            Call();
+            t = nextToken();
+            if (t != SEMI) error("ожидался ';' после вызова функции");
+            return;
+        }
         else {
-            error("ожидалось '=' после идентификатора (присваивание)");
+            error("ожидалось '=' (присваивание) или '(' (вызов функции) после идентификатора");
         }
     }
 
