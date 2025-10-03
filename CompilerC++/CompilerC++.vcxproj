@@ -124,10 +124,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CompilerC++.cpp" />
+    <ClCompile Include="Diagram.cpp" />
     <ClCompile Include="Scanner.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h" />
+    <ClInclude Include="Diagram.h" />
     <ClInclude Include="Scanner.h" />
   </ItemGroup>
   <ItemGroup>
