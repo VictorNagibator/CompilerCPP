@@ -265,6 +265,9 @@ void Diagram::SwitchStmt() {
             else if (t == KW_INT || t == KW_SHORT || t == KW_LONG || t == KW_BOOL) {
                 VarDecl();
             }
+            else if (t == KW_CASE) {
+                error("case не может идти после default");
+			}
             else {
                 Stmt();
             }
