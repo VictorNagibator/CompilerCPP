@@ -13,6 +13,8 @@ public:
     // Возвращает её код 
     int getNextLex(string& outLex);
 
+    std::pair<int, int> getLineCol() const;
+
 private:
     string text; // исходный текст + завершающий '\0'
     size_t currentPos; // текущая позиция в text

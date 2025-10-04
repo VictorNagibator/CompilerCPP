@@ -40,9 +40,11 @@ void Diagram::pushBack(int tok, const string& lex) {
 
 // Сообщение об ошибке и завершение
 void Diagram::error(string msg) {
+    std::pair<int, int> lc = sc->getLineCol();
+
     std::cerr << "Синтаксическая ошибка: " << msg;
     if (!curLex.empty()) std::cerr << " (около '" << curLex << "')";
-    std::cerr << std::endl;
+    std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
     std::exit(1);
 }
 
@@ -59,6 +61,10 @@ void Diagram::Program() {
     while (t == KW_VOID || t == KW_INT || t == KW_SHORT || t == KW_LONG || t == KW_BOOL) {
         TopDecl();
         t = peekToken();
+    }
+
+    if (t != T_END) {
+        error("ожидалось объявление переменной или определение функции");
     }
 }
 
@@ -357,9 +363,8 @@ void Diagram::Prim() {
     if (t == IDENT) {
         int t2 = peekToken();
         if (t2 == LPAREN) {
-            // IDENT и разобрать как вызов функции через Call()
-            pushBack(t, curLex);
-            Call();
+            pushBack(t2, curLex);
+            error("вызов функции внутри выражения невозможен: функции возвращают void");
             return;
         }
         else {

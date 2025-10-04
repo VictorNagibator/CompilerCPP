@@ -235,3 +235,21 @@ int Scanner::getNextLex(string& outLex) {
     }
     }
 }
+
+std::pair<int, int> Scanner::getLineCol() const {
+    int line = 1;
+    int col = 0;
+    size_t pos = 0;
+    while (pos < currentPos && pos < text.size()) {
+        char c = text[pos];
+        if (c == '\n') {
+            line++;
+            col = 1;
+        }
+        else {
+            col++;
+        }
+        pos++;
+    }
+    return { line, col };
+}
