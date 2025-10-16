@@ -29,9 +29,9 @@ int main(int argc, char** argv) {
     Diagram dg(&sc);
     dg.ParseProgram();
 
-    cout << "Синтаксических и семантических ошибок не обнаружено." << endl;
+    cout << "Ошибок не обнаружено!" << endl;
     if (Tree::Root) {
-        Tree::Root->Print();
+        Tree::Root->print();
     }
     else {
         std::cout << "<дерево семантики пусто>" << endl;

@@ -1,31 +1,35 @@
-#include "Diagram.h"
+п»ї#include "Diagram.h"
 #include "Tree.h"
 #include <iostream>
 
-// Конструктор
+// РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ
 Diagram::Diagram(Scanner* scanner) : sc(scanner), curTok(0), curLex(), currentDeclType(TYPE_INT) {
     pushTok.clear();
     pushLex.clear();
 }
 
-// Вспомогательные: вывод ошибок с форматом и выход
 void Diagram::synError(const string& msg) {
     auto lc = sc->getLineCol();
-    std::cerr << "Синтаксическая ошибка: " << msg;
-    if (!curLex.empty()) std::cerr << " (около '" << curLex << "')";
-    std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
+    std::cerr << "РЎРёРЅС‚Р°РєСЃРёС‡РµСЃРєР°СЏ РѕС€РёР±РєР°: " << msg;
+    if (!curLex.empty()) std::cerr << " (РѕРєРѕР»Рѕ '" << curLex << "')";
+    std::cerr << std::endl << "(СЃС‚СЂРѕРєР° " << lc.first << ":" << lc.second << ")" << std::endl;
     std::exit(1);
 }
 
+void Diagram::lexError() {
+    auto lc = sc->getLineCol();
+    std::cerr << "Р›РµРєСЃРёС‡РµСЃРєР°СЏ РѕС€РёР±РєР°: РЅРµРёР·РІРµСЃС‚РЅР°СЏ Р»РµРєСЃРµРјР° '" << curLex;
+    std::cerr << std::endl << "(СЃС‚СЂРѕРєР° " << lc.first << ":" << lc.second << ")" << std::endl;
+    std::exit(1);
+}
+
+// СЃРґРµР»Р°РµРј С‚Р°Рє Р»РёС€СЊ РґР»СЏ СѓРґРѕР±СЃС‚РІР° (РїРѕС…РѕР¶Р° РЅР° РѕСЃС‚Р°Р»СЊРЅС‹Рµ С„СѓРЅРєС†РёРё)
 void Diagram::semError(const string& msg) {
     auto lc = sc->getLineCol();
-    std::cerr << "Семантическая ошибка: " << msg;
-    if (!curLex.empty()) std::cerr << " (около '" << curLex << "')";
-    std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
-    std::exit(1);
+	Tree::semError(msg, curLex, lc.first, lc.second);
 }
 
-// Возврат следующего токена (с контролем лексической ошибки)
+// Р’РѕР·РІСЂР°С‚ СЃР»РµРґСѓСЋС‰РµРіРѕ С‚РѕРєРµРЅР° (СЃ РєРѕРЅС‚СЂРѕР»РµРј Р»РµРєСЃРёС‡РµСЃРєРѕР№ РѕС€РёР±РєРё)
 int Diagram::nextToken() {
     if (!pushTok.empty()) {
         int t = pushTok.back();
@@ -35,10 +39,7 @@ int Diagram::nextToken() {
         curTok = t;
         curLex = lx;
         if (curTok == T_ERR) {
-            auto lc = sc->getLineCol();
-            std::cerr << "Лексическая ошибка: неизвестная лексема '" << curLex << "'\n";
-            std::cerr << "(строка " << lc.first << ":" << lc.second << ")\n";
-            std::exit(1);
+            lexError();
         }
         return curTok;
     }
@@ -49,42 +50,42 @@ int Diagram::nextToken() {
 
     if (curTok == T_ERR) {
         auto lc = sc->getLineCol();
-        std::cerr << "Лексическая ошибка: неизвестная лексема '" << curLex << "'\n";
-        std::cerr << "(строка " << lc.first << ":" << lc.second << ")\n";
+        std::cerr << "Р›РµРєСЃРёС‡РµСЃРєР°СЏ РѕС€РёР±РєР°: РЅРµРёР·РІРµСЃС‚РЅР°СЏ Р»РµРєСЃРµРјР° '" << curLex << "'\n";
+        std::cerr << "(СЃС‚СЂРѕРєР° " << lc.first << ":" << lc.second << ")\n";
         std::exit(1);
     }
     return curTok;
 }
 
-// Посмотреть следующий токен (не читая)
+// РџРѕСЃРјРѕС‚СЂРµС‚СЊ СЃР»РµРґСѓСЋС‰РёР№ С‚РѕРєРµРЅ (РЅРµ С‡РёС‚Р°СЏ)
 int Diagram::peekToken() {
     int t = nextToken();
     pushBack(t, curLex);
     return t;
 }
 
-// Вернуть токен в поток
+// Р’РµСЂРЅСѓС‚СЊ С‚РѕРєРµРЅ РІ РїРѕС‚РѕРє
 void Diagram::pushBack(int tok, const string& lex) {
     pushTok.push_back(tok);
     pushLex.push_back(lex);
 }
 
-// Точка входа
+// РўРѕС‡РєР° РІС…РѕРґР°
 void Diagram::ParseProgram() {
-    // создаём корень семантического дерева (область верхнего уровня)
+    // СЃРѕР·РґР°С‘Рј РєРѕСЂРµРЅСЊ СЃРµРјР°РЅС‚РёС‡РµСЃРєРѕРіРѕ РґРµСЂРµРІР° (РѕР±Р»Р°СЃС‚СЊ РІРµСЂС…РЅРµРіРѕ СѓСЂРѕРІРЅСЏ)
     SemNode* rootNode = new SemNode();
-    rootNode->id = "<корень>";
+    rootNode->id = "<РіР»РѕР±Р°Р»СЊРЅР°СЏ РѕР±Р»Р°СЃС‚СЊ РІРёРґРёРјРѕСЃС‚Рё>";
     rootNode->DataType = TYPE_SCOPE;
     rootNode->line = 0;
     rootNode->col = 0;
     Tree* rootTree = new Tree(rootNode, nullptr);
-    Tree::SetCur(rootTree);
+    Tree::setCur(rootTree);
 
     Program();
 
-    // проверим, что в конце файла действительно конец
+    // РїСЂРѕРІРµСЂРёРј, С‡С‚Рѕ РІ РєРѕРЅС†Рµ С„Р°Р№Р»Р° РґРµР№СЃС‚РІРёС‚РµР»СЊРЅРѕ РєРѕРЅРµС†
     int t = nextToken();
-    if (t != T_END) synError("лишний текст в конце программы");
+    if (t != T_END) synError("Р»РёС€РЅРёР№ С‚РµРєСЃС‚ РІ РєРѕРЅС†Рµ РїСЂРѕРіСЂР°РјРјС‹");
 }
 
 // Program -> TopDecl*
@@ -96,7 +97,7 @@ void Diagram::Program() {
     }
 
     if (t != T_END) {
-        synError("ожидалось объявление переменной или определение функции");
+        synError("РѕР¶РёРґР°Р»РѕСЃСЊ РѕР±СЉСЏРІР»РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ РёР»Рё РѕРїСЂРµРґРµР»РµРЅРёРµ С„СѓРЅРєС†РёРё");
     }
 }
 
@@ -114,34 +115,34 @@ void Diagram::TopDecl() {
 // Function -> 'void' IDENT '(' ParamListOpt ')' Block
 void Diagram::Function() {
     int t = nextToken();
-    if (t != KW_VOID) synError("ожидался 'void' в определении функции");
+    if (t != KW_VOID) synError("РѕР¶РёРґР°Р»СЃСЏ 'void' РІ РѕРїСЂРµРґРµР»РµРЅРёРё С„СѓРЅРєС†РёРё");
 
-    // имя функции
+    // РёРјСЏ С„СѓРЅРєС†РёРё
     t = nextToken();
-    if (t != IDENT && t != KW_MAIN) synError("ожидалось имя функции (IDENT)");
+    if (t != IDENT && t != KW_MAIN) synError("РѕР¶РёРґР°Р»РѕСЃСЊ РёРјСЏ С„СѓРЅРєС†РёРё (IDENT)");
     string funcName = curLex;
     auto pos = sc->getLineCol();
 
-    // Семантика: занести функцию в семантическое дерево
-    Tree* funcNode = Tree::Cur->SemInclude(funcName, TYPE_FUNCT, pos.first, pos.second);
+    // РЎРµРјР°РЅС‚РёРєР°: Р·Р°РЅРµСЃС‚Рё С„СѓРЅРєС†РёСЋ РІ СЃРµРјР°РЅС‚РёС‡РµСЃРєРѕРµ РґРµСЂРµРІРѕ
+    Tree* funcNode = Tree::Cur->semInclude(funcName, TYPE_FUNCT, pos.first, pos.second);
 
-    // Запомним текущую область, чтобы потом восстановить
+    // Р—Р°РїРѕРјРЅРёРј С‚РµРєСѓС‰СѓСЋ РѕР±Р»Р°СЃС‚СЊ, С‡С‚РѕР±С‹ РїРѕС‚РѕРј РІРѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ
     Tree* savedCur = Tree::Cur;
 
-    // Переключаем Cur на тело функции (правый узел)
+    // РџРµСЂРµРєР»СЋС‡Р°РµРј Cur РЅР° С‚РµР»Рѕ С„СѓРЅРєС†РёРё (РїСЂР°РІС‹Р№ СѓР·РµР»)
     if (funcNode && funcNode->Right) {
-        Tree::SetCur(funcNode->Right);
+        Tree::setCur(funcNode->Right);
     }
     else {
-        // Защита на случай ошибки
-        Tree::Cur->SemEnterBlock(pos.first, pos.second);
+        // Р—Р°С‰РёС‚Р° РЅР° СЃР»СѓС‡Р°Р№ РѕС€РёР±РєРё
+        Tree::Cur->semEnterBlock(pos.first, pos.second);
     }
 
     // '('
     t = nextToken();
-    if (t != LPAREN) synError("ожидался '(' после имени функции");
+    if (t != LPAREN) synError("РѕР¶РёРґР°Р»СЃСЏ '(' РїРѕСЃР»Рµ РёРјРµРЅРё С„СѓРЅРєС†РёРё");
 
-    // Разбор списка параметров
+    // Р Р°Р·Р±РѕСЂ СЃРїРёСЃРєР° РїР°СЂР°РјРµС‚СЂРѕРІ
     std::vector<DATA_TYPE> paramTypes;
     int paramCount = 0;
     t = peekToken();
@@ -150,7 +151,7 @@ void Diagram::Function() {
             // Type
             t = nextToken();
             if (!(t == KW_INT || t == KW_SHORT || t == KW_LONG || t == KW_BOOL))
-                synError("ожидался тип параметра");
+                synError("РѕР¶РёРґР°Р»СЃСЏ С‚РёРї РїР°СЂР°РјРµС‚СЂР°");
 
             DATA_TYPE ptype = TYPE_INT;
             if (t == KW_SHORT) ptype = TYPE_SHORT_INT;
@@ -159,20 +160,20 @@ void Diagram::Function() {
 
             // IDENT
             t = nextToken();
-            if (t != IDENT) synError("ожидалось имя параметра");
+            if (t != IDENT) synError("РѕР¶РёРґР°Р»РѕСЃСЊ РёРјСЏ РїР°СЂР°РјРµС‚СЂР°");
             string paramName = curLex;
             auto ppos = sc->getLineCol();
 
-            // Семантика: занести параметр в текущую область
-            Tree::Cur->SemInclude(paramName, ptype, ppos.first, ppos.second);
+            // РЎРµРјР°РЅС‚РёРєР°: Р·Р°РЅРµСЃС‚Рё РїР°СЂР°РјРµС‚СЂ РІ С‚РµРєСѓС‰СѓСЋ РѕР±Р»Р°СЃС‚СЊ
+            Tree::Cur->semInclude(paramName, ptype, ppos.first, ppos.second);
 
             paramTypes.push_back(ptype);
             paramCount++;
 
-            // если запятая — продолжаем, иначе выходим
+            // РµСЃР»Рё Р·Р°РїСЏС‚Р°СЏ вЂ” РїСЂРѕРґРѕР»Р¶Р°РµРј, РёРЅР°С‡Рµ РІС‹С…РѕРґРёРј
             t = peekToken();
             if (t == COMMA) {
-                nextToken(); // съесть ','
+                nextToken(); // СЃСЉРµСЃС‚СЊ ','
                 continue;
             }
             else {
@@ -183,26 +184,26 @@ void Diagram::Function() {
 
     // ')'
     t = nextToken();
-    if (t != RPAREN) synError("ожидался ')' после списка параметров");
+    if (t != RPAREN) synError("РѕР¶РёРґР°Р»СЃСЏ ')' РїРѕСЃР»Рµ СЃРїРёСЃРєР° РїР°СЂР°РјРµС‚СЂРѕРІ");
 
-    // Записать информацию о параметрах в узел функции
-    funcNode->SemSetParam(funcNode, paramCount);
-    funcNode->SemSetParamTypes(funcNode, paramTypes);
+    // Р—Р°РїРёСЃР°С‚СЊ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РїР°СЂР°РјРµС‚СЂР°С… РІ СѓР·РµР» С„СѓРЅРєС†РёРё
+    funcNode->semSetParam(funcNode, paramCount);
+    funcNode->semSetParamTypes(funcNode, paramTypes);
 
-    // Тело функции
+    // РўРµР»Рѕ С„СѓРЅРєС†РёРё
     Block();
 
-    // Восстанавливаем предыдущую область
-    Tree::SetCur(savedCur);
+    // Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј РїСЂРµРґС‹РґСѓС‰СѓСЋ РѕР±Р»Р°СЃС‚СЊ
+    Tree::setCur(savedCur);
 }
 
 // VarDecl -> Type IdInitList ;
 void Diagram::VarDecl() {
     int t = nextToken();
     if (!(t == KW_INT || t == KW_SHORT || t == KW_LONG || t == KW_BOOL))
-        synError("ожидался тип в объявлении переменных");
+        synError("РѕР¶РёРґР°Р»СЃСЏ С‚РёРї РІ РѕР±СЉСЏРІР»РµРЅРёРё РїРµСЂРµРјРµРЅРЅС‹С…");
 
-    // Определяем DATA_TYPE
+    // РћРїСЂРµРґРµР»СЏРµРј DATA_TYPE
     if (t == KW_SHORT) currentDeclType = TYPE_SHORT_INT;
     else if (t == KW_LONG) currentDeclType = TYPE_LONG_INT;
     else if (t == KW_BOOL) currentDeclType = TYPE_BOOL;
@@ -211,7 +212,7 @@ void Diagram::VarDecl() {
     IdInitList();
 
     t = nextToken();
-    if (t != SEMI) synError("ожидался ';' в конце объявления переменных");
+    if (t != SEMI) synError("РѕР¶РёРґР°Р»СЃСЏ ';' РІ РєРѕРЅС†Рµ РѕР±СЉСЏРІР»РµРЅРёСЏ РїРµСЂРµРјРµРЅРЅС‹С…");
 }
 
 // IdInitList -> IdInit (',' IdInit)*
@@ -228,27 +229,27 @@ void Diagram::IdInitList() {
 // IdInit -> IDENT [ = Expr ]
 void Diagram::IdInit() {
     int t = nextToken();
-    if (t != IDENT) synError("ожидался идентификатор в списке объявлений");
+    if (t != IDENT) synError("РѕР¶РёРґР°Р»СЃСЏ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РІ СЃРїРёСЃРєРµ РѕР±СЉСЏРІР»РµРЅРёР№");
     string varName = curLex;
     auto pos = sc->getLineCol();
 
-    // Семантика: занести идентификатор в текущую область
-    Tree* varNode = Tree::Cur->SemInclude(varName, currentDeclType, pos.first, pos.second);
+    // РЎРµРјР°РЅС‚РёРєР°: Р·Р°РЅРµСЃС‚Рё РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РІ С‚РµРєСѓС‰СѓСЋ РѕР±Р»Р°СЃС‚СЊ
+    Tree* varNode = Tree::Cur->semInclude(varName, currentDeclType, pos.first, pos.second);
 
     t = peekToken();
     if (t == ASSIGN) {
-        nextToken(); // считать '='
+        nextToken(); // СЃС‡РёС‚Р°С‚СЊ '='
 
-        // Проверка инициализации
+        // РџСЂРѕРІРµСЂРєР° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё
         DATA_TYPE exprType = Expr();
         DATA_TYPE varType = varNode->n->DataType;
 
-        // Проверка совместимости типов
+        // РџСЂРѕРІРµСЂРєР° СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё С‚РёРїРѕРІ
         bool varIsInt = (varType == TYPE_INT || varType == TYPE_SHORT_INT || varType == TYPE_LONG_INT);
         bool exprIsInt = (exprType == TYPE_INT || exprType == TYPE_SHORT_INT || exprType == TYPE_LONG_INT);
 
         if (!((varIsInt && exprIsInt) || (varType == TYPE_BOOL && exprType == TYPE_BOOL))) {
-            semError("несоответствие типов при инициализации переменной '" + varName + "'");
+            semError("РЅРµСЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ С‚РёРїРѕРІ РїСЂРё РёРЅРёС†РёР°Р»РёР·Р°С†РёРё РїРµСЂРµРјРµРЅРЅРѕР№ '" + varName + "'");
         }
     }
 }
@@ -256,19 +257,19 @@ void Diagram::IdInit() {
 // Block -> '{' BlockItems '}'
 void Diagram::Block() {
     int t = nextToken();
-    if (t != LBRACE) synError("ожидался '{' для начала блока");
+    if (t != LBRACE) synError("РѕР¶РёРґР°Р»СЃСЏ '{' РґР»СЏ РЅР°С‡Р°Р»Р° Р±Р»РѕРєР°");
 
-    // Семантика: вход в новую область
+    // РЎРµРјР°РЅС‚РёРєР°: РІС…РѕРґ РІ РЅРѕРІСѓСЋ РѕР±Р»Р°СЃС‚СЊ
     auto lc = sc->getLineCol();
-    Tree::Cur->SemEnterBlock(lc.first, lc.second);
+    Tree::Cur->semEnterBlock(lc.first, lc.second);
 
     BlockItems();
 
     t = nextToken();
-    if (t != RBRACE) synError("ожидался '}' для конца блока");
+    if (t != RBRACE) synError("РѕР¶РёРґР°Р»СЃСЏ '}' РґР»СЏ РєРѕРЅС†Р° Р±Р»РѕРєР°");
 
-    // Выход из области
-    Tree::Cur->SemExitBlock();
+    // Р’С‹С…РѕРґ РёР· РѕР±Р»Р°СЃС‚Рё
+    Tree::Cur->semExitBlock();
 }
 
 // BlockItems -> ( VarDecl | Stmt )* 
@@ -290,7 +291,7 @@ void Diagram::Stmt() {
     int t = peekToken();
 
     if (t == SEMI) {
-        nextToken(); // пустой оператор
+        nextToken(); // РїСѓСЃС‚РѕР№ РѕРїРµСЂР°С‚РѕСЂ
         return;
     }
 
@@ -305,19 +306,19 @@ void Diagram::Stmt() {
     }
 
     if (t == IDENT) {
-        // Нужно определить: присваивание или вызов функции
+        // РќСѓР¶РЅРѕ РѕРїСЂРµРґРµР»РёС‚СЊ: РїСЂРёСЃРІР°РёРІР°РЅРёРµ РёР»Рё РІС‹Р·РѕРІ С„СѓРЅРєС†РёРё
         int tokIdent = nextToken();
-        string savedName = curLex; // СОХРАНИТЬ лексему ДО peekToken!
+        string savedName = curLex; // РЎРћРҐР РђРќРРўР¬ Р»РµРєСЃРµРјСѓ Р”Рћ peekToken!
         int t2 = peekToken();
 
-        // Возвращаем идентификатор обратно с ПРАВИЛЬНОЙ лексемой
+        // Р’РѕР·РІСЂР°С‰Р°РµРј РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РѕР±СЂР°С‚РЅРѕ СЃ РџР РђР’РР›Р¬РќРћР™ Р»РµРєСЃРµРјРѕР№
         pushBack(tokIdent, savedName);
 
         if (t2 == ASSIGN) {
             Assign();
-            // Проверяем ';'
+            // РџСЂРѕРІРµСЂСЏРµРј ';'
             t = nextToken();
-            if (t != SEMI) synError("ожидался ';' после оператора присваивания");
+            if (t != SEMI) synError("РѕР¶РёРґР°Р»СЃСЏ ';' РїРѕСЃР»Рµ РѕРїРµСЂР°С‚РѕСЂР° РїСЂРёСЃРІР°РёРІР°РЅРёСЏ");
             return;
         }
         else if (t2 == LPAREN) {
@@ -325,106 +326,113 @@ void Diagram::Stmt() {
             return;
         }
         else {
-            synError("ожидалось '=' (присваивание) или '(' (вызов функции) после идентификатора");
+            synError("РѕР¶РёРґР°Р»РѕСЃСЊ '=' (РїСЂРёСЃРІР°РёРІР°РЅРёРµ) РёР»Рё '(' (РІС‹Р·РѕРІ С„СѓРЅРєС†РёРё) РїРѕСЃР»Рµ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР°");
         }
     }
 
-    synError("неизвестная форма оператора");
+    synError("РЅРµРёР·РІРµСЃС‚РЅР°СЏ С„РѕСЂРјР° РѕРїРµСЂР°С‚РѕСЂР°");
 }
 
 // CallStmt -> Call ;
 void Diagram::CallStmt() {
     Call();
 
-    // Проверяем ';'
+    // РџСЂРѕРІРµСЂСЏРµРј ';'
     int t = nextToken();
-    if (t != SEMI) synError("ожидался ';' после вызова функции");
+    if (t != SEMI) synError("РѕР¶РёРґР°Р»СЃСЏ ';' РїРѕСЃР»Рµ РІС‹Р·РѕРІР° С„СѓРЅРєС†РёРё");
 }
 
 // Assign -> IDENT = Expr
 void Diagram::Assign() {
     int t = nextToken();
-    if (t != IDENT) synError("ожидался идентификатор в присваивании");
+    if (t != IDENT) synError("РѕР¶РёРґР°Р»СЃСЏ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РІ РїСЂРёСЃРІР°РёРІР°РЅРёРё");
     string name = curLex;
     auto lc = sc->getLineCol();
 
-    // Семантика: проверка левой части
-    Tree* leftNode = Tree::Cur->SemGetVar(name, lc.first, lc.second);
+    // РЎРµРјР°РЅС‚РёРєР°: РїСЂРѕРІРµСЂРєР° Р»РµРІРѕР№ С‡Р°СЃС‚Рё
+    Tree* leftNode = Tree::Cur->semGetVar(name, lc.first, lc.second);
     if (leftNode->n->DataType == TYPE_FUNCT) {
-        semError("нельзя присваивать функции '" + name + "'");
+        semError("РЅРµР»СЊР·СЏ РїСЂРёСЃРІР°РёРІР°С‚СЊ С„СѓРЅРєС†РёРё '" + name + "'");
     }
 
     // '='
     t = nextToken();
-    if (t != ASSIGN) synError("ожидался знак '=' в присваивании");
+    if (t != ASSIGN) synError("РѕР¶РёРґР°Р»СЃСЏ Р·РЅР°Рє '=' РІ РїСЂРёСЃРІР°РёРІР°РЅРёРё");
 
-    // Проверка правой части
+    // РџСЂРѕРІРµСЂРєР° РїСЂР°РІРѕР№ С‡Р°СЃС‚Рё
     DATA_TYPE rtype = Expr();
     DATA_TYPE ltype = leftNode->n->DataType;
 
-    // Проверка совместимости типов
+    // РџСЂРѕРІРµСЂРєР° СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё С‚РёРїРѕРІ
     bool lIsInt = (ltype == TYPE_INT || ltype == TYPE_SHORT_INT || ltype == TYPE_LONG_INT);
     bool rIsInt = (rtype == TYPE_INT || rtype == TYPE_SHORT_INT || rtype == TYPE_LONG_INT);
 
     if (!((lIsInt && rIsInt) || (ltype == TYPE_BOOL && rtype == TYPE_BOOL))) {
-        semError("несоответствие типов при присваивании для '" + name + "'");
+        semError("РЅРµСЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ С‚РёРїРѕРІ РїСЂРё РїСЂРёСЃРІР°РёРІР°РЅРёРё РґР»СЏ '" + name + "'");
     }
 }
 
 // SwitchStmt -> 'switch' '(' Expr ')' '{' CaseStmt* DefaultStmt? '}'
 void Diagram::SwitchStmt() {
     int t = nextToken();
-    if (t != KW_SWITCH) synError("ожидался 'switch'");
+    if (t != KW_SWITCH) synError("РѕР¶РёРґР°Р»СЃСЏ 'switch'");
 
     t = nextToken();
-    if (t != LPAREN) synError("ожидался '(' после 'switch'");
+    if (t != LPAREN) synError("РѕР¶РёРґР°Р»СЃСЏ '(' РїРѕСЃР»Рµ 'switch'");
 
-    // Проверка типа выражения в switch
+    // РџСЂРѕРІРµСЂРєР° С‚РёРїР° РІС‹СЂР°Р¶РµРЅРёСЏ РІ switch
     DATA_TYPE stype = Expr();
     if (!(stype == TYPE_INT || stype == TYPE_SHORT_INT || stype == TYPE_LONG_INT)) {
-        semError("тип выражения в switch должен быть целым (int)");
+        semError("С‚РёРї РІС‹СЂР°Р¶РµРЅРёСЏ РІ switch РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ С†РµР»С‹Рј (int)");
     }
 
     t = nextToken();
-    if (t != RPAREN) synError("ожидался ')' после выражения switch");
+    if (t != RPAREN) synError("РѕР¶РёРґР°Р»СЃСЏ ')' РїРѕСЃР»Рµ РІС‹СЂР°Р¶РµРЅРёСЏ switch");
 
     t = nextToken();
-    if (t != LBRACE) synError("ожидался '{' для тела switch");
+    if (t != LBRACE) synError("РѕР¶РёРґР°Р»СЃСЏ '{' РґР»СЏ С‚РµР»Р° switch");
 
-    // Разбираем case-последовательность
+    // Р Р°Р·Р±РёСЂР°РµРј case-РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ
     t = peekToken();
     while (t == KW_CASE) {
         CaseStmt();
         t = peekToken();
     }
 
-    // Опциональный default
+    // РћРїС†РёРѕРЅР°Р»СЊРЅС‹Р№ default
     if (peekToken() == KW_DEFAULT) {
         DefaultStmt();
     }
 
     t = nextToken();
-    if (t != RBRACE) synError("ожидался '}' в конце switch");
+    if (t != RBRACE) synError("РѕР¶РёРґР°Р»СЃСЏ '}' РІ РєРѕРЅС†Рµ switch");
 }
 
 // CaseStmt -> 'case' Const ':' Stmt*
 void Diagram::CaseStmt() {
     int t = nextToken();
-    if (t != KW_CASE) synError("ожидался 'case'");
+    if (t != KW_CASE) synError("РѕР¶РёРґР°Р»СЃСЏ 'case'");
 
-    // Проверка константы
+    // РџСЂРѕРІРµСЂРєР° РєРѕРЅСЃС‚Р°РЅС‚С‹
     t = nextToken();
     if (!(t == DEC_CONST || t == HEX_CONST)) {
-        semError("case принимает только числовую константу");
+        semError("case РїСЂРёРЅРёРјР°РµС‚ С‚РѕР»СЊРєРѕ С‡РёСЃР»РѕРІСѓСЋ РєРѕРЅСЃС‚Р°РЅС‚Сѓ");
     }
 
     t = nextToken();
-    if (t != COLON) synError("ожидался ':' после case-значения");
+    if (t != COLON) synError("РѕР¶РёРґР°Р»СЃСЏ ':' РїРѕСЃР»Рµ case-Р·РЅР°С‡РµРЅРёСЏ");
 
-    // Тело case: произвольные операторы
+    // РўРµР»Рѕ case: РїСЂРѕРёР·РІРѕР»СЊРЅС‹Рµ РѕРїРµСЂР°С‚РѕСЂС‹
     t = peekToken();
     while (t != KW_CASE && t != KW_DEFAULT && t != RBRACE && t != T_END) {
-        Stmt();
+        if (t == KW_BREAK) {
+            nextToken(); // 'break'
+            t = nextToken();
+            if (t != SEMI) synError("РѕР¶РёРґР°Р»СЃСЏ ';' РїРѕСЃР»Рµ break");
+        }
+        else {
+            Stmt();
+        }
         t = peekToken();
     }
 }
@@ -432,15 +440,22 @@ void Diagram::CaseStmt() {
 // DefaultStmt -> 'default' ':' Stmt*
 void Diagram::DefaultStmt() {
     int t = nextToken();
-    if (t != KW_DEFAULT) synError("ожидался 'default'");
+    if (t != KW_DEFAULT) synError("РѕР¶РёРґР°Р»СЃСЏ 'default'");
 
     t = nextToken();
-    if (t != COLON) synError("ожидался ':' после default");
+    if (t != COLON) synError("РѕР¶РёРґР°Р»СЃСЏ ':' РїРѕСЃР»Рµ default");
 
-    // Тело default
+    // РўРµР»Рѕ default
     t = peekToken();
     while (t != RBRACE && t != T_END) {
-        Stmt();
+        if (t == KW_BREAK) {
+            nextToken(); // 'break'
+            t = nextToken();
+            if (t != SEMI) synError("РѕР¶РёРґР°Р»СЃСЏ ';' РїРѕСЃР»Рµ break");
+        }
+        else {
+            Stmt();
+        }
         t = peekToken();
     }
 }
@@ -448,17 +463,17 @@ void Diagram::DefaultStmt() {
 // Call -> IDENT '(' ArgListOpt ')'
 void Diagram::Call() {
     int t = nextToken();
-    if (t != IDENT) synError("ожидалось имя функции при вызове");
+    if (t != IDENT) synError("РѕР¶РёРґР°Р»РѕСЃСЊ РёРјСЏ С„СѓРЅРєС†РёРё РїСЂРё РІС‹Р·РѕРІРµ");
     string fname = curLex;
     auto lc = sc->getLineCol();
 
-    // Семантика: имя должно быть функцией
-    Tree* fnode = Tree::Cur->SemGetFunct(fname, lc.first, lc.second);
+    // РЎРµРјР°РЅС‚РёРєР°: РёРјСЏ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ С„СѓРЅРєС†РёРµР№
+    Tree* fnode = Tree::Cur->semGetFunct(fname, lc.first, lc.second);
 
     t = nextToken();
-    if (t != LPAREN) synError("ожидался '(' после имени функции");
+    if (t != LPAREN) synError("РѕР¶РёРґР°Р»СЃСЏ '(' РїРѕСЃР»Рµ РёРјРµРЅРё С„СѓРЅРєС†РёРё");
 
-    // Собираем типы фактических параметров
+    // РЎРѕР±РёСЂР°РµРј С‚РёРїС‹ С„Р°РєС‚РёС‡РµСЃРєРёС… РїР°СЂР°РјРµС‚СЂРѕРІ
     std::vector<DATA_TYPE> argTypes;
     t = peekToken();
     if (t != RPAREN) {
@@ -474,17 +489,17 @@ void Diagram::Call() {
     }
 
     t = nextToken();
-    if (t != RPAREN) synError("ожидался ')' после списка аргументов");
+    if (t != RPAREN) synError("РѕР¶РёРґР°Р»СЃСЏ ')' РїРѕСЃР»Рµ СЃРїРёСЃРєР° Р°СЂРіСѓРјРµРЅС‚РѕРІ");
 
-    // Проверяем число и типы аргументов
-    fnode->SemControlParamTypes(fnode, argTypes, lc.first, lc.second);
+    // РџСЂРѕРІРµСЂСЏРµРј С‡РёСЃР»Рѕ Рё С‚РёРїС‹ Р°СЂРіСѓРјРµРЅС‚РѕРІ
+    fnode->semControlParamTypes(fnode, argTypes, lc.first, lc.second);
 }
 
 // Expr -> ['+'|'-'] Rel ( ('==' | '!=') Rel )*
 DATA_TYPE Diagram::Expr() {
     int t = peekToken();
     if (t == PLUS || t == MINUS) {
-        nextToken(); // унарный +/-
+        nextToken(); // СѓРЅР°СЂРЅС‹Р№ +/-
     }
 
     DATA_TYPE left = Rel();
@@ -494,15 +509,15 @@ DATA_TYPE Diagram::Expr() {
         nextToken(); // EQ/NEQ
         DATA_TYPE right = Rel();
 
-        // Проверка типов для ==/!=
+        // РџСЂРѕРІРµСЂРєР° С‚РёРїРѕРІ РґР»СЏ ==/!=
         bool leftIsInt = (left == TYPE_INT || left == TYPE_SHORT_INT || left == TYPE_LONG_INT);
         bool rightIsInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if ((leftIsInt && rightIsInt) || (left == TYPE_BOOL && right == TYPE_BOOL)) {
-            left = TYPE_BOOL; // результат сравнения — bool
+            left = TYPE_BOOL; // СЂРµР·СѓР»СЊС‚Р°С‚ СЃСЂР°РІРЅРµРЅРёСЏ вЂ” bool
         }
         else {
-            semError("операнды для '=='/ '!=' должны быть одного типа (int или bool)");
+            semError("РѕРїРµСЂР°РЅРґС‹ РґР»СЏ '=='/ '!=' РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ РѕРґРЅРѕРіРѕ С‚РёРїР° (int РёР»Рё bool)");
         }
 
         t = peekToken();
@@ -519,14 +534,14 @@ DATA_TYPE Diagram::Rel() {
         nextToken();
         DATA_TYPE right = Shift();
 
-        // Для <,<=,>,>= оба операнда должны быть целыми
+        // Р”Р»СЏ <,<=,>,>= РѕР±Р° РѕРїРµСЂР°РЅРґР° РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ С†РµР»С‹РјРё
         bool lInt = (left == TYPE_INT || left == TYPE_SHORT_INT || left == TYPE_LONG_INT);
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '<, <=, >, >=' должны быть целыми (int)");
+            semError("РѕРїРµСЂР°РЅРґС‹ РґР»СЏ '<, <=, >, >=' РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ С†РµР»С‹РјРё (int)");
         }
-        left = TYPE_BOOL; // результат — bool
+        left = TYPE_BOOL; // СЂРµР·СѓР»СЊС‚Р°С‚ вЂ” bool
         t = peekToken();
     }
     return left;
@@ -545,7 +560,7 @@ DATA_TYPE Diagram::Shift() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для сдвигов должны быть целыми (int)");
+            semError("РѕРїРµСЂР°РЅРґС‹ РґР»СЏ СЃРґРІРёРіРѕРІ РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ С†РµР»С‹РјРё (int)");
         }
         left = TYPE_INT;
         t = peekToken();
@@ -566,7 +581,7 @@ DATA_TYPE Diagram::Add() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '+'/'-' должны быть целыми (int)");
+            semError("РѕРїРµСЂР°РЅРґС‹ РґР»СЏ '+'/'-' РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ С†РµР»С‹РјРё (int)");
         }
         left = TYPE_INT;
         t = peekToken();
@@ -587,7 +602,7 @@ DATA_TYPE Diagram::Mul() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '*', '/', '%' должны быть целыми (int)");
+            semError("РѕРїРµСЂР°РЅРґС‹ РґР»СЏ '*', '/', '%' РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ С†РµР»С‹РјРё (int)");
         }
         left = TYPE_INT;
         t = peekToken();
@@ -610,7 +625,7 @@ DATA_TYPE Diagram::Prim() {
     if (t == LPAREN) {
         DATA_TYPE dt = Expr();
         t = nextToken();
-        if (t != RPAREN) synError("ожидался ')' после выражения");
+        if (t != RPAREN) synError("РѕР¶РёРґР°Р»СЃСЏ ')' РїРѕСЃР»Рµ РІС‹СЂР°Р¶РµРЅРёСЏ");
         return dt;
     }
 
@@ -619,25 +634,23 @@ DATA_TYPE Diagram::Prim() {
         int t2 = peekToken();
 
         if (t2 == LPAREN) {
-            // Вызов функции внутри выражения недопустим
-            semError("вызов функции внутри выражения невозможен: функции возвращают void");
-            return TYPE_INT; // unreachable
+            // Р’С‹Р·РѕРІ С„СѓРЅРєС†РёРё РІРЅСѓС‚СЂРё РІС‹СЂР°Р¶РµРЅРёСЏ РЅРµРґРѕРїСѓСЃС‚РёРј
+            semError("РІС‹Р·РѕРІ С„СѓРЅРєС†РёРё РІРЅСѓС‚СЂРё РІС‹СЂР°Р¶РµРЅРёСЏ РЅРµРІРѕР·РјРѕР¶РµРЅ: С„СѓРЅРєС†РёРё РІРѕР·РІСЂР°С‰Р°СЋС‚ void");
         }
         else {
-            // Обычный идентификатор
+            // РћР±С‹С‡РЅС‹Р№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ
             auto lc = sc->getLineCol();
-            Tree* v = Tree::Cur->SemGetVar(name, lc.first, lc.second);
+            Tree* v = Tree::Cur->semGetVar(name, lc.first, lc.second);
             return v->n->DataType;
         }
     }
 
-    synError("ожидалось первичное выражение (IDENT, константа или скобки)");
-    return TYPE_INT; // для компилятора
+    synError("РѕР¶РёРґР°Р»РѕСЃСЊ РїРµСЂРІРёС‡РЅРѕРµ РІС‹СЂР°Р¶РµРЅРёРµ (IDENT, РєРѕРЅСЃС‚Р°РЅС‚Р° РёР»Рё СЃРєРѕР±РєРё)");
 }
 
 // ArgListOpt -> Expr (',' Expr)* | epsilon
 void Diagram::ArgListOpt() {
-    // Используется внутри Call
+    // РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РІРЅСѓС‚СЂРё Call
     Expr();
     int t = peekToken();
     while (t == COMMA) {
@@ -651,11 +664,11 @@ void Diagram::ArgListOpt() {
 void Diagram::Const() {
     int t = nextToken();
     if (!(t == DEC_CONST || t == HEX_CONST || t == KW_TRUE || t == KW_FALSE))
-        synError("ожидалась константа");
+        synError("РѕР¶РёРґР°Р»Р°СЃСЊ РєРѕРЅСЃС‚Р°РЅС‚Р°");
 }
 
 // Name -> IDENT
 void Diagram::Name() {
     int t = nextToken();
-    if (t != IDENT) synError("ожидался идентификатор (имя)");
+    if (t != IDENT) synError("РѕР¶РёРґР°Р»СЃСЏ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ (РёРјСЏ)");
 }

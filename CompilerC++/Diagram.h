@@ -27,6 +27,7 @@ private:
     void pushBack(int tok, const string& lex); // вернуть токен в поток
 
     // базовые лексические/синтаксические/семантические ошибки
+	void lexError();
     void synError(const string& msg);
     void semError(const string& msg);
 

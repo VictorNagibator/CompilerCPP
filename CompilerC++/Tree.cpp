@@ -8,11 +8,10 @@ Tree* Tree::Root = nullptr;
 Tree* Tree::Cur = nullptr;
 
 // печать семантической ошибки
-void Tree::SemError(const char* msg, const string& id, int line, int col) {
+void Tree::semError(const string& msg, const string& id, int line, int col) {
     std::cerr << "Семантическая ошибка: " << msg;
-    if (!id.empty()) std::cerr << " '" << id << "'";
-    if (line > 0) std::cerr << " (строка " << line << ":" << col << ")";
-    std::cerr << std::endl;
+    if (!id.empty()) std::cerr << " (около '" << id << "')";
+    std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
     std::exit(1);
 }
 
@@ -33,7 +32,7 @@ Tree::~Tree() {
 }
 
 // Вставка первого дочернего элемента (левая ссылка)
-void Tree::SetLeft(SemNode* Data) {
+void Tree::setLeft(SemNode* Data) {
     Tree* newNode = new Tree(Data, this);
     if (this->Left == nullptr) {
         this->Left = newNode;
@@ -48,7 +47,7 @@ void Tree::SetLeft(SemNode* Data) {
 }
 
 // Вставка правого соседа
-void Tree::SetRight(SemNode* Data) {
+void Tree::setRight(SemNode* Data) {
     Tree* newNode = new Tree(Data, this->Up);
     // вставляем после текущего узла
     newNode->Right = this->Right;
@@ -57,7 +56,7 @@ void Tree::SetRight(SemNode* Data) {
 }
 
 // ищет имя id среди дочерних элементов узла
-Tree* Tree::FindUpOneLevel(Tree* From, const string& id) {
+Tree* Tree::findUpOneLevel(Tree* From, const string& id) {
     if (From == nullptr) return nullptr;
     Tree* p = From->Left;
     while (p != nullptr) {
@@ -68,10 +67,10 @@ Tree* Tree::FindUpOneLevel(Tree* From, const string& id) {
 }
 
 // поиск с подъёмом по областям (для блочной видимости)
-Tree* Tree::FindUp(Tree* From, const string& id) {
+Tree* Tree::findUp(Tree* From, const string& id) {
     Tree* cur = From;
     while (cur != nullptr) {
-        Tree* found = FindUpOneLevel(cur, id);
+        Tree* found = findUpOneLevel(cur, id);
         if (found) return found;
         cur = cur->Up;
     }
@@ -79,20 +78,20 @@ Tree* Tree::FindUp(Tree* From, const string& id) {
 }
 
 // проверка дубля на уровне Addr (Addr — текущая область)
-bool Tree::DupControl(Tree* Addr, const string& a) {
-    if (FindUpOneLevel(Addr, a) == nullptr) return false;
+bool Tree::dupControl(Tree* Addr, const string& a) {
+    if (findUpOneLevel(Addr, a) == nullptr) return false;
     return true;
 }
 
 // добавляет идентификатор в текущую область Cur
-Tree* Tree::SemInclude(const string& a, DATA_TYPE t, int line, int col) {
+Tree* Tree::semInclude(const string& a, DATA_TYPE t, int line, int col) {
     if (Cur == nullptr) {
-        SemError("внутренняя ошибка: текущая область не установлена при SemInclude", a, line, col);
+        semError("внутренняя ошибка: текущая область не установлена при SemInclude", a, line, col);
     }
 
     // Проверка повтора в текущем уровне
-    if (DupControl(Cur, a)) {
-        SemError("повторное описание идентификатора", a, line, col);
+    if (dupControl(Cur, a)) {
+        semError("повторное описание идентификатора", a, line, col);
     }
 
     // создаём SemNode
@@ -107,7 +106,7 @@ Tree* Tree::SemInclude(const string& a, DATA_TYPE t, int line, int col) {
     // Если это функция — создаём узел функции и правый пустой узел для тела
     if (t == TYPE_FUNCT) {
         // вставляем функцию как новый дочерний элемент текущей области
-        Cur->SetLeft(node); // ЯВНО через Cur
+        Cur->setLeft(node); // ЯВНО через Cur
 
         // указатель на созданную функцию — последний добавленный потомок
         Tree* funcNode = Cur->Left;
@@ -122,12 +121,12 @@ Tree* Tree::SemInclude(const string& a, DATA_TYPE t, int line, int col) {
         emptyNode->col = col;
 
         // вставляем emptyNode как правого потомка у funcNode
-        funcNode->SetRight(emptyNode); // Использовать метод SetRight
+        funcNode->setRight(emptyNode); // Использовать метод SetRight
         return funcNode;
     }
     else {
         // Обычная переменная/параметр/объявление
-        Cur->SetLeft(node); // явно через Cur
+        Cur->setLeft(node); // явно через Cur
         // возвращаем указатель на только что добавленный узел
         Tree* added = Cur->Left;
         while (added->Right) added = added->Right;
@@ -136,30 +135,30 @@ Tree* Tree::SemInclude(const string& a, DATA_TYPE t, int line, int col) {
 }
 
 // записать число формальных параметров для функции Addr
-void Tree::SemSetParam(Tree* Addr, int n) {
+void Tree::semSetParam(Tree* Addr, int n) {
     if (Addr == nullptr || Addr->n == nullptr) {
-        SemError("SemSetParam: неверный адрес функции");
+        semError("SemSetParam: неверный адрес функции");
     }
     Addr->n->Param = n;
 }
 
 // сохранить типы формальных параметров
-void Tree::SemSetParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& types) {
+void Tree::semSetParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& types) {
     if (Addr == nullptr || Addr->n == nullptr) {
-        SemError("SemSetParamTypes: неверный адрес функции");
+        semError("SemSetParamTypes: неверный адрес функции");
     }
     Addr->n->ParamTypes = types;
     Addr->n->Param = (int)types.size();
 }
 
 // проверка числа и типов аргументов
-void Tree::SemControlParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& argTypes, int line, int col) {
+void Tree::semControlParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& argTypes, int line, int col) {
     if (Addr == nullptr || Addr->n == nullptr) {
-        SemError("SemControlParamTypes: неверный адрес функции");
+        semError("SemControlParamTypes: неверный адрес функции");
     }
     const std::vector<DATA_TYPE>& formal = Addr->n->ParamTypes;
     if (formal.size() != argTypes.size()) {
-        SemError("неверное число параметров у функции", Addr->n->id, line, col);
+        semError("неверное число параметров у функции", Addr->n->id, line, col);
     }
     for (size_t i = 0; i < formal.size(); ++i) {
         // считаем short/long/int совместимыми между собой
@@ -168,38 +167,38 @@ void Tree::SemControlParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& argTyp
         if (formalIsInt && argIsInt) continue;
         if (formal[i] == argTypes[i]) continue;
         // иначе ошибка
-        SemError("несоответствие типов параметров у функции", Addr->n->id, line, col);
+        semError("несоответствие типов параметров у функции", Addr->n->id, line, col);
     }
 }
 
 // найти переменную (не функцию) по имени (в видимых областях)
-Tree* Tree::SemGetVar(const string& a, int line, int col) {
-    Tree* v = FindUp(Cur, a);
+Tree* Tree::semGetVar(const string& a, int line, int col) {
+    Tree* v = findUp(Cur, a);
     if (v == nullptr) {
-        SemError("отсутствует описание идентификатора", a, line, col);
+        semError("отсутствует описание идентификатора", a, line, col);
     }
     if (v->n->DataType == TYPE_FUNCT) {
-        SemError("неверное использование - идентификатор является функцией", a, line, col);
+        semError("неверное использование - идентификатор является функцией", a, line, col);
     }
     return v;
 }
 
 // найти функцию по имени
-Tree* Tree::SemGetFunct(const string& a, int line, int col) {
-    Tree* v = FindUp(Cur, a);
+Tree* Tree::semGetFunct(const string& a, int line, int col) {
+    Tree* v = findUp(Cur, a);
     if (v == nullptr) {
-        SemError("отсутствует описание функции", a, line, col);
+        semError("отсутствует описание функции", a, line, col);
     }
     if (v->n->DataType != TYPE_FUNCT) {
-        SemError("идентификатор не является функцией", a, line, col);
+        semError("идентификатор не является функцией", a, line, col);
     }
     return v;
 }
 
 // создать узел-область и перейти в него
-Tree* Tree::SemEnterBlock(int line, int col) {
+Tree* Tree::semEnterBlock(int line, int col) {
     if (Cur == nullptr) {
-        SemError("SemEnterBlock: текущая область не установлена");
+        semError("SemEnterBlock: текущая область не установлена");
     }
     SemNode* sn = new SemNode();
     sn->id = "";
@@ -210,7 +209,7 @@ Tree* Tree::SemEnterBlock(int line, int col) {
 
     // вставляем новую область как дочерний элемент текущего Cur
     // (т.е. она будет видимой как локальная область для последующих SemInclude)
-    SetLeft(sn);
+    setLeft(sn);
 
     // возвращаем указатель на созданный узел (последний дочерний)
     Tree* created = Cur->Left;
@@ -222,12 +221,12 @@ Tree* Tree::SemEnterBlock(int line, int col) {
 }
 
 // вернуться на уровень вверх
-void Tree::SemExitBlock() {
+void Tree::semExitBlock() {
     if (Cur == nullptr) {
-        SemError("SemExitBlock: текущая область не установлена");
+        semError("SemExitBlock: текущая область не установлена");
     }
     if (Cur->Up == nullptr) {
-        SemError("SemExitBlock: попытка выйти из корневой области");
+        semError("SemExitBlock: попытка выйти из корневой области");
     }
     Cur = Cur->Up;
 }
@@ -241,7 +240,7 @@ std::string Tree::makeLabel(const Tree* tree) const {
     std::ostringstream oss;
 
     if (!n->id.empty()) oss << n->id;
-    else oss << "<{}>";
+    else oss << "{}";
 
     // тип
     switch (n->DataType) {
@@ -258,7 +257,7 @@ std::string Tree::makeLabel(const Tree* tree) const {
     auto childName = [](const Tree* t)->std::string {
         if (!t || !t->n) return std::string("-");
         if (t->n->DataType == TYPE_SCOPE) return std::string("{}");
-        if (t->n->id.empty()) return std::string("<?>");
+        if (t->n->id.empty()) return std::string("?");
         return t->n->id;
     };
 
@@ -270,7 +269,7 @@ std::string Tree::makeLabel(const Tree* tree) const {
     return oss.str();
 }
 
-void Tree::Print(int indent) {
+void Tree::print(int indent) {
     if (this == nullptr) return;
 
     // печатаем текущий узел
@@ -281,12 +280,12 @@ void Tree::Print(int indent) {
 	// затем рекурсивно печатаем всех потомков
     Tree* child = this->Left;
     while (child) {
-        child->Print(indent + 4); // сдвиг для уровня (4 пробела)
+        child->print(indent + 4); // сдвиг для уровня (4 пробела)
         child = child->Right; // переходим к следующему
     }
 }
 
 // начать с нулевого отступа
-void Tree::Print() {
-    Print(0);
+void Tree::print() {
+    print(0);
 }

@@ -1,11 +1,5 @@
-int in;
-int a;
-void fun(long num) {
-	int i;
-}
+void main(int n) {
+    int m;
 
-void main() {
-	int n;
-	{ short x, y; }
-	{ long z, h; }
+    fun();
 }

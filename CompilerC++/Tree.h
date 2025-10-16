@@ -1,68 +1,68 @@
-#pragma once
+п»ї#pragma once
 #include "SemNode.h"
 #include <fstream>
 
-// Класс семантического дерева (области видимости)
+// РљР»Р°СЃСЃ СЃРµРјР°РЅС‚РёС‡РµСЃРєРѕРіРѕ РґРµСЂРµРІР° (РѕР±Р»Р°СЃС‚Рё РІРёРґРёРјРѕСЃС‚Рё)
 class Tree {
 public:
-    SemNode* n; // данные узла
-    Tree* Up; // родитель (внешняя область)
-    Tree* Left; // первый вложенный элемент (левая ссылка)
-    Tree* Right; // следующий элемент на том же уровне (правый сосед)
+    SemNode* n; // РґР°РЅРЅС‹Рµ СѓР·Р»Р°
+    Tree* Up; // СЂРѕРґРёС‚РµР»СЊ (РІРЅРµС€РЅСЏСЏ РѕР±Р»Р°СЃС‚СЊ)
+    Tree* Left; // РїРµСЂРІС‹Р№ РІР»РѕР¶РµРЅРЅС‹Р№ СЌР»РµРјРµРЅС‚ (Р»РµРІР°СЏ СЃСЃС‹Р»РєР°)
+    Tree* Right; // СЃР»РµРґСѓСЋС‰РёР№ СЌР»РµРјРµРЅС‚ РЅР° С‚РѕРј Р¶Рµ СѓСЂРѕРІРЅРµ (РїСЂР°РІС‹Р№ СЃРѕСЃРµРґ)
 
-    // Текущая позиция (корень/текущий блок)
+    // РўРµРєСѓС‰Р°СЏ РїРѕР·РёС†РёСЏ (РєРѕСЂРµРЅСЊ/С‚РµРєСѓС‰РёР№ Р±Р»РѕРє)
     static Tree* Root;
     static Tree* Cur;
 
-    // Конструктор и деструктор
+    // РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ Рё РґРµСЃС‚СЂСѓРєС‚РѕСЂ
     Tree(SemNode* node = nullptr, Tree* up = nullptr);
     ~Tree();
 
-    // вставка левого/правого дочернего (создают новый узел)
-    void SetLeft(SemNode* Data); // вставить как первый дочерний элемент текущего узла
-    void SetRight(SemNode* Data); // вставить как правого соседа текущего узла 
+    // РІСЃС‚Р°РІРєР° Р»РµРІРѕРіРѕ/РїСЂР°РІРѕРіРѕ РґРѕС‡РµСЂРЅРµРіРѕ (СЃРѕР·РґР°СЋС‚ РЅРѕРІС‹Р№ СѓР·РµР»)
+    void setLeft(SemNode* Data); // РІСЃС‚Р°РІРёС‚СЊ РєР°Рє РїРµСЂРІС‹Р№ РґРѕС‡РµСЂРЅРёР№ СЌР»РµРјРµРЅС‚ С‚РµРєСѓС‰РµРіРѕ СѓР·Р»Р°
+    void setRight(SemNode* Data); // РІСЃС‚Р°РІРёС‚СЊ РєР°Рє РїСЂР°РІРѕРіРѕ СЃРѕСЃРµРґР° С‚РµРєСѓС‰РµРіРѕ СѓР·Р»Р° 
 
-    // поиск в дереве
-    Tree* FindUp(Tree* From, const string& id); // поиск в текущей и внешних областях
-    Tree* FindUpOneLevel(Tree* From, const string& id); // поиск только в текущем уровне
+    // РїРѕРёСЃРє РІ РґРµСЂРµРІРµ
+    Tree* findUp(Tree* From, const string& id); // РїРѕРёСЃРє РІ С‚РµРєСѓС‰РµР№ Рё РІРЅРµС€РЅРёС… РѕР±Р»Р°СЃС‚СЏС…
+    Tree* findUpOneLevel(Tree* From, const string& id); // РїРѕРёСЃРє С‚РѕР»СЊРєРѕ РІ С‚РµРєСѓС‰РµРј СѓСЂРѕРІРЅРµ
 
-    // Семантические операции
-    // занесение идентификатора a в текущую область
-    Tree* SemInclude(const string& a, DATA_TYPE t, int line, int col);
+    // РЎРµРјР°РЅС‚РёС‡РµСЃРєРёРµ РѕРїРµСЂР°С†РёРё
+    // Р·Р°РЅРµСЃРµРЅРёРµ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР° a РІ С‚РµРєСѓС‰СѓСЋ РѕР±Р»Р°СЃС‚СЊ
+    Tree* semInclude(const string& a, DATA_TYPE t, int line, int col);
 
-    // установить число формальных параметров для функции
-    void SemSetParam(Tree* Addr, int n);
+    // СѓСЃС‚Р°РЅРѕРІРёС‚СЊ С‡РёСЃР»Рѕ С„РѕСЂРјР°Р»СЊРЅС‹С… РїР°СЂР°РјРµС‚СЂРѕРІ РґР»СЏ С„СѓРЅРєС†РёРё
+    void semSetParam(Tree* Addr, int n);
 
-    // установить список типов формальных параметров для функции
-    void SemSetParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& types);
+    // СѓСЃС‚Р°РЅРѕРІРёС‚СЊ СЃРїРёСЃРѕРє С‚РёРїРѕРІ С„РѕСЂРјР°Р»СЊРЅС‹С… РїР°СЂР°РјРµС‚СЂРѕРІ РґР»СЏ С„СѓРЅРєС†РёРё
+    void semSetParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& types);
 
-    // проверить фактические параметры по числу и типам (вызывать при Call)
-    void SemControlParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& argTypes, int line, int col);
+    // РїСЂРѕРІРµСЂРёС‚СЊ С„Р°РєС‚РёС‡РµСЃРєРёРµ РїР°СЂР°РјРµС‚СЂС‹ РїРѕ С‡РёСЃР»Сѓ Рё С‚РёРїР°Рј (РІС‹Р·С‹РІР°С‚СЊ РїСЂРё Call)
+    void semControlParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& argTypes, int line, int col);
 
-    // найти переменную (не функцию) с именем a в видимых областях
-    Tree* SemGetVar(const string& a, int line, int col);
+    // РЅР°Р№С‚Рё РїРµСЂРµРјРµРЅРЅСѓСЋ (РЅРµ С„СѓРЅРєС†РёСЋ) СЃ РёРјРµРЅРµРј a РІ РІРёРґРёРјС‹С… РѕР±Р»Р°СЃС‚СЏС…
+    Tree* semGetVar(const string& a, int line, int col);
 
-    // найти функцию с именем a
-    Tree* SemGetFunct(const string& a, int line, int col);
+    // РЅР°Р№С‚Рё С„СѓРЅРєС†РёСЋ СЃ РёРјРµРЅРµРј a
+    Tree* semGetFunct(const string& a, int line, int col);
 
-    // проверка дубля на текущем уровне
-    bool DupControl(Tree* Addr, const string& a);
+    // РїСЂРѕРІРµСЂРєР° РґСѓР±Р»СЏ РЅР° С‚РµРєСѓС‰РµРј СѓСЂРѕРІРЅРµ
+    bool dupControl(Tree* Addr, const string& a);
 
-    // Вход/выход в/из области (составной оператор)
-    Tree* SemEnterBlock(int line, int col);
-    void SemExitBlock();
+    // Р’С…РѕРґ/РІС‹С…РѕРґ РІ/РёР· РѕР±Р»Р°СЃС‚Рё (СЃРѕСЃС‚Р°РІРЅРѕР№ РѕРїРµСЂР°С‚РѕСЂ)
+    Tree* semEnterBlock(int line, int col);
+    void semExitBlock();
 
-    // Установка/получение текущей вершины
-    static void SetCur(Tree* a) { Cur = a; }
-    static Tree* GetCur() { return Cur; }
+    // РЈСЃС‚Р°РЅРѕРІРєР°/РїРѕР»СѓС‡РµРЅРёРµ С‚РµРєСѓС‰РµР№ РІРµСЂС€РёРЅС‹
+    static void setCur(Tree* a) { Cur = a; }
+    static Tree* getCur() { return Cur; }
 
-    void Print(); // Упрощенная версия
+    void print(); // РЈРїСЂРѕС‰РµРЅРЅР°СЏ РІРµСЂСЃРёСЏ РїРµС‡Р°С‚Рё РґРµСЂРµРІР°
+
+    // РџРµС‡Р°С‚СЊ РѕС€РёР±РєРё Рё РѕСЃС‚Р°РЅРѕРІРєР°
+    static void semError(const string& msg, const string& id = "", int line = -1, int col = -1);
 
 private:
-    // Вспомогательная печать ошибки и остановка
-    static void SemError(const char* msg, const string& id = "", int line = -1, int col = -1);
-
-    // Печать дерева
-    void Print(int depth);
+    // РџРµС‡Р°С‚СЊ РґРµСЂРµРІР°
+    void print(int depth);
 	std::string makeLabel(const Tree* tree) const;
 };
