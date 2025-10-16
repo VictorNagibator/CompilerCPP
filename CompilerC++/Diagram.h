@@ -2,6 +2,7 @@
 
 #include "Scanner.h"
 #include "Defines.h"
+#include "DataType.h"
 #include <string>
 #include <vector>
 
@@ -19,10 +20,15 @@ private:
     int curTok;
     string curLex;
 
+    DATA_TYPE currentDeclType; // текущий тип при объявлении переменных
+
     int nextToken(); // читать следующую лексему
     int peekToken(); // посмотреть токен, не читая
     void pushBack(int tok, const string& lex); // вернуть токен в поток
-    void error(string msg); // вывести сообщение об ошибке и завершить
+
+    // базовые лексические/синтаксические/семантические ошибки
+    void synError(const string& msg);
+    void semError(const string& msg);
 
     // Синтаксические процедуры (имена — как в грамматике)
     void Program(); // верхнеуровневая программа (TopDecl*)
@@ -35,14 +41,17 @@ private:
     void BlockItems(); // содержимое блока: (VarDecl | Stmt)*
     void Stmt(); // оператор: ';' | Block | Assign | Switch
     void Assign(); // присваивание: IDENT = Expr ;
+    void CallStmt(); // вызов функции как оператора: Call ;
     void SwitchStmt(); // switch (Expr) { case ... default ... }
+    void CaseStmt(); // case Const : Stmt*
+    void DefaultStmt(); // default : Stmt*
     void Name(); // имя (IDENT)
-    void Expr(); // выражение (уровень равенств; поддержка унарного +/−)
-    void Rel(); // уровень отношений (<, <=, >, >=)
-    void Shift(); // сдвиги (<<, >>)
-    void Add(); // аддитивные (+, -)
-    void Mul(); // мультипликативные (*, /, %)
-    void Prim(); // первичное выражение: IDENT | CONST | IDENT(...) | (Expr)
+    DATA_TYPE Expr(); // выражение (уровень равенств; поддержка унарного +/−)
+    DATA_TYPE Rel(); // уровень отношений (<, <=, >, >=)
+    DATA_TYPE Shift(); // сдвиги (<<, >>)
+    DATA_TYPE Add(); // аддитивные (+, -)
+    DATA_TYPE Mul(); // мультипликативные (*, /, %)
+    DATA_TYPE Prim(); // первичное выражение: IDENT | CONST | IDENT(...) | (Expr)
     void Call(); // вызов функции: IDENT '(' ArgListOpt ')'
     void ArgListOpt(); // список аргументов
     void Const(); // терминальные константы

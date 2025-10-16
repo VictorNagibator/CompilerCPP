@@ -1,1 +1,30 @@
-int x = 0x;
+void printNumbers(int x, short y, long z) {
+    int temp;
+    temp = x + y + z;
+    int x;
+    x = 2;
+}
+
+void main() {
+    int a;
+    short b;
+    long c;
+    bool d;
+    
+    a = 10;
+    b = 20;
+    c = 30;
+    d = true;
+    
+    switch (a) {
+        case 1: a = 100;
+        case 2: a = 200;
+        default: a = 0;
+    }
+    
+    printNumbers(a, b, c);
+}
+
+void emptyFunction() {
+    int a;
+}

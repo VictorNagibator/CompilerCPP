@@ -126,11 +126,15 @@
     <ClCompile Include="CompilerC++.cpp" />
     <ClCompile Include="Diagram.cpp" />
     <ClCompile Include="Scanner.cpp" />
+    <ClCompile Include="Tree.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DataType.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="Diagram.h" />
     <ClInclude Include="Scanner.h" />
+    <ClInclude Include="SemNode.h" />
+    <ClInclude Include="Tree.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="input.txt" />
