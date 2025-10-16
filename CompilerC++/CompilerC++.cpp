@@ -29,14 +29,12 @@ int main(int argc, char** argv) {
     Diagram dg(&sc);
     dg.ParseProgram();
 
-    // Если мы дошли сюда, то лексика, синтаксис и семантика прошли
     cout << "Синтаксических и семантических ошибок не обнаружено." << endl;
-    cout << "Вывод семантического дерева:" << endl;
     if (Tree::Root) {
         Tree::Root->Print();
     }
     else {
-        cout << "<дерево семантики пусто>" << endl;
+        std::cout << "<дерево семантики пусто>" << endl;
     }
 
     return 0;
