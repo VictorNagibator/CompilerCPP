@@ -383,7 +383,7 @@ void Diagram::SwitchStmt() {
     // Проверка типа выражения в switch
     DATA_TYPE stype = Expr();
     if (!(stype == TYPE_INT || stype == TYPE_SHORT_INT || stype == TYPE_LONG_INT)) {
-        semError("тип выражения в switch должен быть целым (int)");
+        semError("тип выражения в switch должен быть целым (int/short/long)");
     }
 
     t = nextToken();
@@ -517,7 +517,7 @@ DATA_TYPE Diagram::Expr() {
             left = TYPE_BOOL; // результат сравнения — bool
         }
         else {
-            semError("операнды для '=='/ '!=' должны быть одного типа (int или bool)");
+            semError("операнды для '=='/ '!=' должны быть одного типа");
         }
 
         t = peekToken();
@@ -539,7 +539,7 @@ DATA_TYPE Diagram::Rel() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '<, <=, >, >=' должны быть целыми (int)");
+            semError("операнды для '<, <=, >, >=' должны быть целыми (int/short/long)");
         }
         left = TYPE_BOOL; // результат — bool
         t = peekToken();
@@ -560,7 +560,7 @@ DATA_TYPE Diagram::Shift() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для сдвигов должны быть целыми (int)");
+            semError("операнды для сдвигов должны быть целыми (int/short/long)");
         }
         left = TYPE_INT;
         t = peekToken();
@@ -581,7 +581,7 @@ DATA_TYPE Diagram::Add() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '+'/'-' должны быть целыми (int)");
+            semError("операнды для '+'/'-' должны быть целыми (int/short/long)");
         }
         left = TYPE_INT;
         t = peekToken();
@@ -602,7 +602,7 @@ DATA_TYPE Diagram::Mul() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '*', '/', '%' должны быть целыми (int)");
+            semError("операнды для '*', '/', '%' должны быть целыми (int/short/long)");
         }
         left = TYPE_INT;
         t = peekToken();

@@ -1,5 +1,6 @@
-void main(int n) {
-    int m;
-
-    fun();
+void test() {
+    int a = 1;
+    switch (a) {
+        case true: break;
+    }
 }
