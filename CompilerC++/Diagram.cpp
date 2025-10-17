@@ -18,7 +18,7 @@ void Diagram::synError(const string& msg) {
 
 void Diagram::lexError() {
     auto lc = sc->getLineCol();
-    std::cerr << "Лексическая ошибка: неизвестная лексема '" << curLex;
+    std::cerr << "Лексическая ошибка: неизвестная лексема '" << curLex << "'";
     std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
     std::exit(1);
 }
@@ -49,10 +49,7 @@ int Diagram::nextToken() {
     curLex = lex;
 
     if (curTok == T_ERR) {
-        auto lc = sc->getLineCol();
-        std::cerr << "Лексическая ошибка: неизвестная лексема '" << curLex << "'\n";
-        std::cerr << "(строка " << lc.first << ":" << lc.second << ")\n";
-        std::exit(1);
+        lexError();
     }
     return curTok;
 }
@@ -517,7 +514,7 @@ DATA_TYPE Diagram::Expr() {
             left = TYPE_BOOL; // результат сравнения — bool
         }
         else {
-            semError("операнды для '=='/ '!=' должны быть одного типа");
+            semError("операнды для '=='/'!=' должны быть одного типа");
         }
 
         t = peekToken();

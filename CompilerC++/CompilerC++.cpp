@@ -1,15 +1,11 @@
-﻿// main.cpp
-#include <iostream>
+﻿#include <iostream>
 #include <string>
 #include <Windows.h>
 
 #include "Diagram.h"
 #include "Tree.h"
 
-using std::string;
-using std::cout;
-using std::cerr;
-using std::endl;
+using namespace std;
 
 int main(int argc, char** argv) {
     // Корректно отображаем русский язык в консоли
@@ -34,7 +30,7 @@ int main(int argc, char** argv) {
         Tree::Root->print();
     }
     else {
-        std::cout << "<дерево семантики пусто>" << endl;
+        cout << "<дерево семантики пусто>" << endl;
     }
 
     return 0;

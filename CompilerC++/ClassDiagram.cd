@@ -1,11 +1,41 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="FullSignature">
-  <Class Name="Scanner">
-    <Position X="4.75" Y="1" Width="2.75" />
+<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
+  <Class Name="Tree">
+    <Position X="6.75" Y="0.75" Width="2.5" />
+    <AssociationLine Name="n" Type="SemNode">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.579" Y="0.081" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAEAAQABAAQIACIABCAAAAAAAAAIIAIQgAAAACAAQA=</HashCode>
-      <FileName>Scanner.h</FileName>
+      <HashCode>AgQAADAAAECIADAAAAAAAIAAAAgABAEIGAGBUAAAgCo=</HashCode>
+      <FileName>Tree.h</FileName>
     </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="n" />
+    </ShowAsAssociation>
   </Class>
+  <Struct Name="SemNode">
+    <Position X="10.75" Y="3.5" Width="2.5" />
+    <AssociationLine Name="DataType" Type="DATA_TYPE">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.869" Y="0.383" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>AAEAAAIAAAIAAAAAAAAAAQAAAAAgABAAAAAAAAAAAgA=</HashCode>
+      <FileName>SemNode.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="DataType" />
+    </ShowAsAssociation>
+  </Struct>
+  <Enum Name="DATA_TYPE">
+    <Position X="11" Y="0.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACAAAAAAAAAAAQAACIAAAAAAAAQAAAAAABAAAAAAAA=</HashCode>
+      <FileName>DataType.h</FileName>
+    </TypeIdentifier>
+  </Enum>
   <Font Name="Segoe UI" Size="9" />
 </ClassDiagram>
