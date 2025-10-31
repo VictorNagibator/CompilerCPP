@@ -88,7 +88,20 @@ SemNode Diagram::evaluateConstant(const string& value, DATA_TYPE type) {
             result.Value.v_bool = (value == "true");
         }
         else {
-            long long val = std::stoll(value, nullptr, 0);
+            // Обрабатываем отрицательные числа напрямую
+            string valueToParse = value;
+            bool isNegative = false;
+
+            if (!valueToParse.empty() && valueToParse[0] == '-') {
+                isNegative = true;
+                valueToParse = valueToParse.substr(1);
+            }
+
+            long long val = std::stoll(valueToParse, nullptr, 0);
+
+            if (isNegative) {
+                val = -val;
+            }
 
             if (type == TYPE_SHORT_INT) {
                 result.Value.v_int16 = static_cast<int16_t>(val);
@@ -564,15 +577,28 @@ DATA_TYPE Diagram::Expr() {
     bool hasUnary = false;
     string unaryOp = "";
 
+    // Пропускаем унарные операции для констант - они обрабатываются в Prim()
+    // Оставляем только для случаев, когда это не константа
     if (t == PLUS || t == MINUS) {
-        nextToken();
-        hasUnary = true;
-        unaryOp = (t == PLUS) ? "+" : "-";
+        // Смотрим вперед, чтобы определить, константа ли это
+        int savedTok = nextToken();
+        string savedLex = curLex;
+        int nextTok = peekToken();
+
+        // Если следующий токен - константа, то унарную операцию обработает Prim()
+        if (nextTok == DEC_CONST || nextTok == HEX_CONST) {
+            pushBack(savedTok, savedLex);
+        }
+        else {
+            // Если не константа, то обрабатываем как унарную операцию
+            hasUnary = true;
+            unaryOp = (savedTok == PLUS) ? "+" : "-";
+        }
     }
 
     DATA_TYPE left = Rel();
 
-    // Обработка унарной операции
+    // Обработка унарной операции (только для не-констант)
     if (hasUnary) {
         if (!(left == TYPE_INT || left == TYPE_SHORT_INT || left == TYPE_LONG_INT)) {
             semError("унарный '+'/'-' применим только к целым типам");
@@ -756,6 +782,33 @@ DATA_TYPE Diagram::Mul() {
 // Prim -> IDENT | Const | '(' Expr ')'
 DATA_TYPE Diagram::Prim() {
     int t = nextToken();
+
+    // Сначала проверяем унарный минус для отрицательных констант
+    if (t == MINUS) {
+        t = nextToken();
+        if (t == DEC_CONST || t == HEX_CONST) {
+            DATA_TYPE constType = TYPE_INT;
+            // Создаем отрицательную константу
+            SemNode constNode = evaluateConstant("-" + curLex, constType);
+            pushValue(constNode);
+            return constType;
+        }
+        else {
+            // Если после минуса не константа, то это унарная операция над выражением
+            // Помещаем токен обратно и обрабатываем как обычное выражение в скобках
+            pushBack(t, curLex);
+            pushBack(MINUS, "-");
+            // Обрабатываем как выражение в скобках
+            t = nextToken();
+            if (t != LPAREN) {
+                synError("ожидалась константа или выражение в скобках после '-'");
+            }
+            DATA_TYPE dt = Expr();
+            t = nextToken();
+            if (t != RPAREN) synError("ожидался ')' после выражения");
+            return dt;
+        }
+    }
 
     if (t == DEC_CONST || t == HEX_CONST) {
         DATA_TYPE constType = TYPE_INT;

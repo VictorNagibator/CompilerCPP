@@ -1,20 +1,22 @@
-int a = 10;
-
-void test(int b) {
-	a = b + 1;
-}
-
 void main() {
-	short a = 327693254;
-	long b = 10;
-	long sum = a + 1 * 2;
-
-	test(a + b);
-
-	a = sum;
-}
-
-void test2() {
-	a = 5;
-	a = a + 1;
+    // Базовые присваивания констант
+    short s1 = 100;
+    short s2 = -200;
+    int i1 = 1000;
+    int i2 = -2000;
+    long l1 = 10000;
+    long l2 = -20000;
+    bool b1 = true;
+    bool b2 = false;
+    
+    // Граничные значения
+    short s_min = -32768;
+    short s_max = 32767;
+    int i_min = -2147483648;
+    int i_max = 2147483647;
+    
+    // Константы в разных системах счисления
+    int dec_const = 123;
+    int hex_const = 0x7B;
+    int big_hex = 0xABCD;
 }
