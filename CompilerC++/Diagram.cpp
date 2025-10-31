@@ -787,8 +787,27 @@ DATA_TYPE Diagram::Prim() {
     if (t == MINUS) {
         t = nextToken();
         if (t == DEC_CONST || t == HEX_CONST) {
-            DATA_TYPE constType = TYPE_INT;
-            // Создаем отрицательную константу
+            DATA_TYPE constType = TYPE_SHORT_INT;
+
+            // Определяем, нужно ли автоматически повышать тип до long
+            string valueStr = "-" + curLex;
+            try {
+                long long val = std::stoll(valueStr, nullptr, 0);
+
+                // Если значение выходит за пределы short, автоматически делаем его int
+                if (val > 32767 || val < -32768) {
+                    constType = TYPE_INT;
+                }
+
+                // Если значение выходит за пределы int, автоматически делаем его long
+                if (val > 2147483647LL || val < -2147483648LL) {
+                    constType = TYPE_LONG_INT;
+                }
+            }
+            catch (...) {
+                // Оставляем как TYPE_INT в случае ошибки
+            }
+
             SemNode constNode = evaluateConstant("-" + curLex, constType);
             pushValue(constNode);
             return constType;
