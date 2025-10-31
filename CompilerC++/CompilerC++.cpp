@@ -1,9 +1,7 @@
 ﻿#include <iostream>
 #include <string>
 #include <Windows.h>
-
 #include "Diagram.h"
-#include "Tree.h"
 
 using namespace std;
 

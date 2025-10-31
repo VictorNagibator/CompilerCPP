@@ -12,36 +12,38 @@ bool Tree::interpretationEnabled = true; // По умолчанию включе
 bool Tree::debug = true; // По умолчанию включен подробный вывод
 Tree* Tree::currentFunction = nullptr; 
 
-// печать предупреждения о преобразовании типов
 void Tree::printTypeConversionWarning(DATA_TYPE from, DATA_TYPE to, const string& context,
     const string& expression, int line, int col) {
+
+    // Выводим только если включен debug режим
+    if (!debug) return;
+
     std::cerr << "Предупреждение: неявное преобразование типа ";
 
     switch (from) {
-    case TYPE_SHORT_INT: std::cerr << "short"; break;
-    case TYPE_INT: std::cerr << "int"; break;
-    case TYPE_LONG_INT: std::cerr << "long"; break;
-    case TYPE_BOOL: std::cerr << "bool"; break;
-    default: std::cerr << "unknown"; break;
+        case TYPE_SHORT_INT: std::cerr << "short"; break;
+        case TYPE_INT: std::cerr << "int"; break;
+        case TYPE_LONG_INT: std::cerr << "long"; break;
+        case TYPE_BOOL: std::cerr << "bool"; break;
+        default: std::cerr << "unknown"; break;
     }
 
     std::cerr << " к ";
 
     switch (to) {
-    case TYPE_SHORT_INT: std::cerr << "short"; break;
-    case TYPE_INT: std::cerr << "int"; break;
-    case TYPE_LONG_INT: std::cerr << "long"; break;
-    case TYPE_BOOL: std::cerr << "bool"; break;
-    default: std::cerr << "unknown"; break;
+        case TYPE_SHORT_INT: std::cerr << "short"; break;
+        case TYPE_INT: std::cerr << "int"; break;
+        case TYPE_LONG_INT: std::cerr << "long"; break;
+        case TYPE_BOOL: std::cerr << "bool"; break;
+        default: std::cerr << "unknown"; break;
     }
 
     std::cerr << " в " << context;
     if (!expression.empty()) {
-        std::cerr << " выражения: " << expression;
+        std::cerr << " выражения " << expression;
     }
     std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
 }
-
 
 // печать семантической ошибки
 void Tree::semError(const string& msg, const string& id, int line, int col) {
@@ -52,7 +54,7 @@ void Tree::semError(const string& msg, const string& id, int line, int col) {
 }
 
 void Tree::interpError(const string& msg, const string& id, int line, int col) {
-    std::cerr << "Ошибка интерпретации: " << msg;
+    std::cerr << "Ошибка при интерпретации: " << msg;
     if (!id.empty()) std::cerr << " (около '" << id << "')";
     std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
     std::exit(1);
@@ -281,45 +283,42 @@ void Tree::setVarValue(const string& name, const SemNode& value, int line, int c
 
     if (!varNode->n->hasValue && value.hasValue) {
         if (canImplicitCast(value.DataType, varNode->n->DataType)) {
-            // Проверяем обрезку значений
+            // Проверяем обрезку значений для ВСЕХ типов
             bool needsTruncationWarning = false;
             long long originalValue = 0;
 
+            // Получаем оригинальное значение в long long
+            switch (value.DataType) {
+            case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
+            case TYPE_INT: originalValue = value.Value.v_int32; break;
+            case TYPE_LONG_INT: originalValue = value.Value.v_int64; break;
+            default: break;
+            }
+
+            // Проверяем обрезку для типа переменной
             if (varNode->n->DataType == TYPE_SHORT_INT) {
-                switch (value.DataType) {
-                case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
-                case TYPE_INT: originalValue = value.Value.v_int32; break;
-                case TYPE_LONG_INT: originalValue = value.Value.v_int64; break;
-                default: break;
-                }
                 if (originalValue < -32768 || originalValue > 32767) {
                     needsTruncationWarning = true;
                 }
             }
             else if (varNode->n->DataType == TYPE_INT) {
-                switch (value.DataType) {
-                case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
-                case TYPE_INT: originalValue = value.Value.v_int32; break;
-                case TYPE_LONG_INT: originalValue = value.Value.v_int64; break;
-                default: break;
-                }
                 if (originalValue < -2147483648LL || originalValue > 2147483647LL) {
                     needsTruncationWarning = true;
                 }
             }
+            // Для long проверка не нужна, так как он самый большой
 
-            // Выводим предупреждение только если типы разные ИЛИ есть обрезка
-            if (value.DataType != varNode->n->DataType || needsTruncationWarning) {
-                if (needsTruncationWarning) {
-                    std::cerr << "Предупреждение: значение " << originalValue
-                        << " обрезается при преобразовании к "
-                        << (varNode->n->DataType == TYPE_SHORT_INT ? "short" : "int");
-                    std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
-                }
-                else {
-                    printTypeConversionWarning(value.DataType, varNode->n->DataType,
-                        "присваивании", name + " = ...", line, col);
-                }
+            // Выводим предупреждение об обрезке ВСЕГДА (независимо от debug)
+            if (needsTruncationWarning) {
+                std::cerr << "Предупреждение: значение " << originalValue
+                    << " обрезается при преобразовании к "
+                    << (varNode->n->DataType == TYPE_SHORT_INT ? "short" : "int");
+                std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
+            }
+            // Выводим предупреждение о преобразовании типов только в debug режиме
+            else if (value.DataType != varNode->n->DataType && debug) {
+                printTypeConversionWarning(value.DataType, varNode->n->DataType,
+                    "присваивании", name + " = ...", line, col);
             }
 
             SemNode converted = castToType(value, varNode->n->DataType, line, col);
@@ -387,61 +386,40 @@ SemNode Tree::castToType(const SemNode& value, DATA_TYPE targetType, int line, i
         return value;
     }
 
-    // Выводим предупреждение ТОЛЬКО если явно указано
-    if (showWarning) {
-        printTypeConversionWarning(value.DataType, targetType,
-            "арифметической операции", "", line, col);
-    }
-
     SemNode result;
     result.DataType = targetType;
     result.hasValue = value.hasValue;
 
     if (!value.hasValue) return result;
 
-    switch (value.DataType) {
+    // Получаем значение в long long для безопасного приведения
+    long long originalValue = 0;
+        switch (value.DataType) {
+        case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
+        case TYPE_INT: originalValue = value.Value.v_int32; break;
+        case TYPE_LONG_INT: originalValue = value.Value.v_int64; break;
+        default: break;
+    }
+
+    // Выполняем приведение
+    switch (targetType) {
     case TYPE_SHORT_INT:
-        switch (targetType) {
-        case TYPE_SHORT_INT: result.Value.v_int16 = value.Value.v_int16; break;
-        case TYPE_INT: result.Value.v_int32 = value.Value.v_int16; break;
-        case TYPE_LONG_INT: result.Value.v_int64 = value.Value.v_int16; break;
-        default: semError("недопустимое приведение типа", "", line, col);
-        }
+        result.Value.v_int16 = static_cast<int16_t>(originalValue);
         break;
-
     case TYPE_INT:
-        switch (targetType) {
-        case TYPE_SHORT_INT:
-            result.Value.v_int16 = static_cast<int16_t>(value.Value.v_int32);
-            break;
-        case TYPE_INT: result.Value.v_int32 = value.Value.v_int32; break;
-        case TYPE_LONG_INT: result.Value.v_int64 = value.Value.v_int32; break;
-        default: semError("недопустимое приведение типа", "", line, col);
-        }
+        result.Value.v_int32 = static_cast<int32_t>(originalValue);
         break;
-
     case TYPE_LONG_INT:
-        switch (targetType) {
-        case TYPE_SHORT_INT:
-            result.Value.v_int16 = static_cast<int16_t>(value.Value.v_int64);
-            break;
-        case TYPE_INT:
-            result.Value.v_int32 = static_cast<int32_t>(value.Value.v_int64);
-            break;
-        case TYPE_LONG_INT: result.Value.v_int64 = value.Value.v_int64; break;
-        default: semError("недопустимое приведение типа", "", line, col);
-        }
+        result.Value.v_int64 = static_cast<int64_t>(originalValue);
         break;
-
     case TYPE_BOOL:
-        if (targetType == TYPE_BOOL) {
+        if (value.DataType == TYPE_BOOL) {
             result.Value.v_bool = value.Value.v_bool;
         }
         else {
-            semError("недопустимое приведение bool к целочисленному типу", "", line, col);
+            semError("недопустимое приведение целого типа к bool", "", line, col);
         }
         break;
-
     default:
         semError("неизвестный тип для приведения", "", line, col);
     }
@@ -455,7 +433,7 @@ SemNode Tree::executeArithmeticOp(const SemNode& left, const SemNode& right, con
     }
 
     // Выводим предупреждение если операнды разных типов
-    if (left.DataType != right.DataType) {
+    if (left.DataType != right.DataType && debug) {
         printTypeConversionWarning(left.DataType, right.DataType,
             "арифметической операции", "", line, col);
     }
