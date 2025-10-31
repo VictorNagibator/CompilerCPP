@@ -1,68 +1,90 @@
 ﻿#pragma once
 #include "SemNode.h"
 #include <fstream>
+#include <vector>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 
-// Класс семантического дерева (области видимости)
+using namespace std;
+
 class Tree {
 public:
-    SemNode* n; // данные узла
-    Tree* Up; // родитель (внешняя область)
-    Tree* Left; // первый вложенный элемент (левая ссылка)
-    Tree* Right; // следующий элемент на том же уровне (правый сосед)
+    SemNode* n;
+    Tree* Up;
+    Tree* Left;
+    Tree* Right;
 
-    // Текущая позиция (корень/текущий блок)
     static Tree* Root;
     static Tree* Cur;
 
-    // Конструктор и деструктор
     Tree(SemNode* node = nullptr, Tree* up = nullptr);
     ~Tree();
 
-    // вставка левого/правого дочернего (создают новый узел)
-    void setLeft(SemNode* Data); // вставить как первый дочерний элемент текущего узла
-    void setRight(SemNode* Data); // вставить как правого соседа текущего узла 
+    void setLeft(SemNode* Data);
+    void setRight(SemNode* Data);
 
-    // поиск в дереве
-    Tree* findUp(Tree* From, const string& id); // поиск в текущей и внешних областях
-    Tree* findUpOneLevel(Tree* From, const string& id); // поиск только в текущем уровне
+    Tree* findUp(Tree* From, const string& id);
+    Tree* findUpOneLevel(Tree* From, const string& id);
 
     // Семантические операции
-    // занесение идентификатора a в текущую область
     Tree* semInclude(const string& a, DATA_TYPE t, int line, int col);
-
-    // установить число формальных параметров для функции
+    Tree* semIncludeConstant(const string& a, DATA_TYPE t, const string& value, int line, int col);
     void semSetParam(Tree* Addr, int n);
-
-    // установить список типов формальных параметров для функции
     void semSetParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& types);
-
-    // проверить фактические параметры по числу и типам (вызывать при Call)
     void semControlParamTypes(Tree* Addr, const std::vector<DATA_TYPE>& argTypes, int line, int col);
-
-    // найти переменную (не функцию) с именем a в видимых областях
     Tree* semGetVar(const string& a, int line, int col);
-
-    // найти функцию с именем a
     Tree* semGetFunct(const string& a, int line, int col);
-
-    // проверка дубля на текущем уровне
     bool dupControl(Tree* Addr, const string& a);
-
-    // Вход/выход в/из области (составной оператор)
     Tree* semEnterBlock(int line, int col);
     void semExitBlock();
 
-    // Установка/получение текущей вершины
     static void setCur(Tree* a) { Cur = a; }
     static Tree* getCur() { return Cur; }
 
-    void print(); // Упрощенная версия печати дерева
-
-    // Печать ошибки и остановка
+    void print();
     static void semError(const string& msg, const string& id = "", int line = -1, int col = -1);
+	static void interpError(const string& msg, const string& id = "", int line = -1, int col = -1);
+
+    // Статические методы для интерпретации - исправленные сигнатуры
+    static void setVarValue(const string& name, const SemNode& value, int line, int col);
+    static SemNode getVarValue(const string& name, int line, int col);
+    static SemNode executeArithmeticOp(const SemNode& left, const SemNode& right, const string& op, int line, int col);
+    static SemNode executeShiftOp(const SemNode& left, const SemNode& right, const string& op, int line, int col);
+    static SemNode executeComparisonOp(const SemNode& left, const SemNode& right, const string& op, int line, int col);
+    static DATA_TYPE getMaxType(DATA_TYPE t1, DATA_TYPE t2);
+    static SemNode castToType(const SemNode& value, DATA_TYPE targetType, int line, int col, bool showWarning = false);
+    static bool canImplicitCast(DATA_TYPE from, DATA_TYPE to);
+    static void executeFunctionCall(const string& funcName, const std::vector<SemNode>& args, int line, int col);
+
+    // Методы для управления интерпретацией
+    static void enableInterpretation();
+    static void disableInterpretation();
+    static bool isInterpretationEnabled();
+
+    static void enableDebug();
+    static void disableDebug();
+    static bool isDebugEnabled();
+
+    // Методы для вывода
+    static void printDebugInfo(const string& message, int line = 0, int col = 0);
+    static void printAssignment(const string& varName, const SemNode& value, int line, int col);
+    static void printFunctionCall(const string& funcName, const std::vector<SemNode>& args, int line, int col);
+    static void printArithmeticOp(const string& op, const SemNode& left, const SemNode& right, const SemNode& result, int line, int col);
+    static void printTypeConversionWarning(DATA_TYPE from, DATA_TYPE to, const string& context, const string& expression, int line, int col);
+    
+    // Текущая функция для контекста
+    static Tree* currentFunction;
+
+    // Методы для управления текущей функцией
+    static void setCurrentFunction(Tree* func) { currentFunction = func; }
+    static Tree* getCurrentFunction() { return currentFunction; }
 
 private:
-    // Печать дерева
     void print(int depth);
-	std::string makeLabel(const Tree* tree) const;
+    std::string makeLabel(const Tree* tree) const;
+
+    // Флаг интерпретации
+    static bool interpretationEnabled;
+    static bool debug; // флаг для подробного вывода
 };

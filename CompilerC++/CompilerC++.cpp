@@ -18,20 +18,12 @@ int main(int argc, char** argv) {
     Scanner sc;
     if (!sc.loadFile(fname)) {
         cerr << "Ошибка: не удалось открыть файл: " << fname << endl;
-        return 2;
+        return -1;
     }
 
     // Разбор
     Diagram dg(&sc);
-    dg.ParseProgram();
-
-    cout << "Ошибок не обнаружено!" << endl;
-    if (Tree::Root) {
-        Tree::Root->print();
-    }
-    else {
-        cout << "<дерево семантики пусто>" << endl;
-    }
+    dg.ParseProgram(true);
 
     return 0;
 }

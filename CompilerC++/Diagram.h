@@ -1,65 +1,69 @@
 ﻿#pragma once
-
 #include "Scanner.h"
 #include "Defines.h"
 #include "DataType.h"
+#include "Tree.h"
 #include <string>
 #include <vector>
+#include <stack>
 
 using std::string;
 
 class Diagram {
 private:
     Scanner* sc;
-
-    // буфер для токенов
     std::vector<int> pushTok;
     std::vector<string> pushLex;
-
-    // последняя прочитанная лексема (для сообщений об ошибке)
     int curTok;
     string curLex;
+    DATA_TYPE currentDeclType;
 
-    DATA_TYPE currentDeclType; // текущий тип при объявлении переменных
+    // Стек для вычисления выражений
+    std::stack<SemNode> evalStack;
 
-    int nextToken(); // читать следующую лексему
-    int peekToken(); // посмотреть токен, не читая
-    void pushBack(int tok, const string& lex); // вернуть токен в поток
-
-    // базовые лексические/синтаксические/семантические ошибки
-	void lexError();
+    int nextToken();
+    int peekToken();
+    void pushBack(int tok, const string& lex);
+    void lexError();
     void synError(const string& msg);
     void semError(const string& msg);
+	void interpError(const string& msg);
 
-    // Синтаксические процедуры (имена — как в грамматике)
-    void Program(); // верхнеуровневая программа (TopDecl*)
-    void TopDecl(); // одно верхнеуровневое объявление (Function | VarDecl)
-    void Function(); // разбор функции: void IDENT ( ParamListOpt ) Block
-    void VarDecl(); // объявление переменных: Type IdInitList ;
-    void IdInitList(); // список имен синициализацией: IdInit (',' IdInit)*
-    void IdInit(); // один элемент списка: IDENT [= Expr]
-    void Block(); // составной оператор: '{' BlockItems '}'
-    void BlockItems(); // содержимое блока: (VarDecl | Stmt)*
-    void Stmt(); // оператор: ';' | Block | Assign | Switch
-    void Assign(); // присваивание: IDENT = Expr ;
-    void CallStmt(); // вызов функции как оператора: Call ;
-    void SwitchStmt(); // switch (Expr) { case ... default ... }
-    void CaseStmt(); // case Const : Stmt*
-    void DefaultStmt(); // default : Stmt*
-    void Name(); // имя (IDENT)
-    DATA_TYPE Expr(); // выражение (уровень равенств; поддержка унарного +/−)
-    DATA_TYPE Rel(); // уровень отношений (<, <=, >, >=)
-    DATA_TYPE Shift(); // сдвиги (<<, >>)
-    DATA_TYPE Add(); // аддитивные (+, -)
-    DATA_TYPE Mul(); // мультипликативные (*, /, %)
-    DATA_TYPE Prim(); // первичное выражение: IDENT | CONST | IDENT(...) | (Expr)
-    void Call(); // вызов функции: IDENT '(' ArgListOpt ')'
-    void ArgListOpt(); // список аргументов
-    void Const(); // терминальные константы
+    // Синтаксические процедуры с интерпретацией
+    void Program();
+    void TopDecl();
+    void Function();
+    void VarDecl();
+    void IdInitList();
+    void IdInit();
+    void Block();
+    void BlockItems();
+    void Stmt();
+    void Assign();
+    void CallStmt();
+    void SwitchStmt();
+    void CaseStmt();
+    void DefaultStmt();
+    void Name();
+
+    // Выражения с интерпретацией
+    DATA_TYPE Expr();
+    DATA_TYPE Rel();
+    DATA_TYPE Shift();
+    DATA_TYPE Add();
+    DATA_TYPE Mul();
+    DATA_TYPE Prim();
+    void Call();
+    void ArgListOpt(std::vector<SemNode>& args);
+    void Const();
+
+    // Вспомогательные методы интерпретации
+    void pushValue(const SemNode& node);
+    SemNode popValue();
+    SemNode evaluateConstant(const string& value, DATA_TYPE type);
+    void executeAssignment(const string& varName, DATA_TYPE exprType, int line, int col);
 
 public:
     Diagram(Scanner* scanner);
-
-    // Точка входа: разбор всей программы
-    void ParseProgram(); // вызывает Program()
+    void ParseProgram(bool isDebug = false);
 };
