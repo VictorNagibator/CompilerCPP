@@ -281,7 +281,7 @@ void Tree::semExitBlock() {
 void Tree::setVarValue(const string& name, const SemNode& value, int line, int col) {
     Tree* varNode = Cur->semGetVar(name, line, col);
 
-    if (!varNode->n->hasValue && value.hasValue) {
+    if (value.hasValue) {
         if (canImplicitCast(value.DataType, varNode->n->DataType)) {
             // Проверяем обрезку значений для ВСЕХ типов
             bool needsTruncationWarning = false;
@@ -289,10 +289,10 @@ void Tree::setVarValue(const string& name, const SemNode& value, int line, int c
 
             // Получаем оригинальное значение в long long
             switch (value.DataType) {
-            case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
-            case TYPE_INT: originalValue = value.Value.v_int32; break;
-            case TYPE_LONG_INT: originalValue = value.Value.v_int64; break;
-            default: break;
+                case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
+                case TYPE_INT: originalValue = value.Value.v_int32; break;
+                case TYPE_LONG_INT: originalValue = value.Value.v_int64; break;
+                default: break;
             }
 
             // Проверяем обрезку для типа переменной
@@ -332,13 +332,7 @@ void Tree::setVarValue(const string& name, const SemNode& value, int line, int c
         }
     }
     else {
-        varNode->n->Value = value.Value;
-        varNode->n->hasValue = value.hasValue;
-        varNode->n->DataType = value.DataType;
-
-        if (value.hasValue) {
-            printAssignment(name, value, line, col);
-        }
+        semError("попытка присвоить NULL", name, line, col);
     }
 }
 

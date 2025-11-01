@@ -1,17 +1,13 @@
 void main() {
-    short s1 = 100;
-    short s2 = -200;
-    int i1 = 40000;
-    int i2 = -40000;
-    long l1 = 10000000000;
-    long l2 = -200000000000;
-    bool b1 = true;
-    bool b2 = false;
-    
-    short s_min = -32768;
-    short s_max = 32767;
-    int i_min = -2147483648;
-    int i_max = 2147483647;
+    short s_val = 100;
+    s_val = 33333;
+    s_val = 3213123123123123;
 
-    int big_hex = 0xABCD;
+    int i_val = 33333;
+    i_val = 100;
+    i_val = 3213123123123123;
+
+    long l_val = 3213123123123123;
+    l_val = 100;
+    l_val = 33333;
 }
