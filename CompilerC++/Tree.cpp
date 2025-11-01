@@ -332,7 +332,7 @@ void Tree::setVarValue(const string& name, const SemNode& value, int line, int c
         }
     }
     else {
-        semError("попытка присвоить NULL", name, line, col);
+        interpError("попытка присвоить NULL", name, line, col);
     }
 }
 
