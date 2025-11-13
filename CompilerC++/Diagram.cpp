@@ -137,7 +137,7 @@ void Diagram::executeAssignment(const string& varName, DATA_TYPE exprType, int l
 }
 
 // Точка входа
-void Diagram::ParseProgram(bool isDebug) {
+void Diagram::ParseProgram(bool isInterp, bool isDebug) {
     SemNode* rootNode = new SemNode();
     rootNode->id = "<глобальная область видимости>";
     rootNode->DataType = TYPE_SCOPE;
@@ -145,6 +145,13 @@ void Diagram::ParseProgram(bool isDebug) {
     rootNode->col = 0;
     Tree* rootTree = new Tree(rootNode, nullptr);
     Tree::setCur(rootTree);
+
+    if (isInterp) {
+        Tree::enableInterpretation();
+    }
+    else {
+        Tree::disableInterpretation();
+    }
 
     if (isDebug) {
         Tree::enableDebug();
@@ -157,6 +164,10 @@ void Diagram::ParseProgram(bool isDebug) {
 
     int t = nextToken();
     if (t != T_END) synError("лишний текст в конце программы");
+
+    if (!isInterp) {
+        rootTree->print();
+    }
 }
 
 // Program -> TopDecl*

@@ -65,5 +65,5 @@ private:
 
 public:
     Diagram(Scanner* scanner);
-    void ParseProgram(bool isDebug = false);
+    void ParseProgram(bool isInterp = true, bool isDebug = false);
 };

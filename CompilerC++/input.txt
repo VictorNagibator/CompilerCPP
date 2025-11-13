@@ -1,13 +1,26 @@
+int a = 0;
+
+void add(int n) {
+    a = a + n;
+}
+
+void mult(int n) {
+    a = a * n;
+}
+
 void main() {
-    short s_val = 100;
-    s_val = 33333;
-    s_val = 3213123123123123;
+    int n = 1;
+    int choice = 0;
 
-    int i_val = 33333;
-    i_val = 100;
-    i_val = 3213123123123123;
-
-    long l_val = 3213123123123123;
-    l_val = 100;
-    l_val = 33333;
+    switch (choice) {
+        case 0:
+            add(n);
+            break;
+        case 1:
+            mult(n);
+            break;
+        default:
+            a = 999;
+            break;
+    }
 }
