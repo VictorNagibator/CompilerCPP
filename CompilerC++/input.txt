@@ -1,4 +1,4 @@
-int a = 0;
+int a = 2;
 
 void add(int n) {
     a = a + n;
@@ -9,8 +9,8 @@ void mult(int n) {
 }
 
 void main() {
-    int n = 1;
-    int choice = 0;
+    int n = 10;
+    int choice = 1;
 
     switch (choice) {
         case 0:

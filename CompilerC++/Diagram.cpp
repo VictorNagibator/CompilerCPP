@@ -265,8 +265,16 @@ void Diagram::Function() {
         Tree::disableInterpretation();
     }
 
+    if (funcNode && funcNode->n) {
+        funcNode->n->bodyStartPos = sc->getPos();
+    }
+
     // Тело функции
     Block();
+
+    if (funcNode && funcNode->n) {
+        funcNode->n->bodyEndPos = sc->getPos();
+    }
 
     // Сбрасываем текущую функцию
     Tree::setCurrentFunction(nullptr);
@@ -464,28 +472,65 @@ void Diagram::SwitchStmt() {
         semError("тип выражения в switch должен быть целым (int/short/long)");
     }
 
+    // Получаем числовое значение выражения
+    SemNode sVal = popValue();
+    long long switchVal = 0;
+    if (!sVal.hasValue) interpError("выражение switch неинициализировано");
+    if (sVal.DataType == TYPE_SHORT_INT) switchVal = sVal.Value.v_int16;
+    else if (sVal.DataType == TYPE_INT) switchVal = sVal.Value.v_int32;
+    else if (sVal.DataType == TYPE_LONG_INT) switchVal = sVal.Value.v_int64;
+
     t = nextToken();
     if (t != RPAREN) synError("ожидался ')' после выражения switch");
 
     t = nextToken();
     if (t != LBRACE) synError("ожидался '{' для тела switch");
 
-    t = peekToken();
-    while (t == KW_CASE) {
-        CaseStmt();
-        t = peekToken();
+    bool anyMatched = false;   // уже была выполненная совпавшая ветка
+    bool endSwitch = false;    // флаг: встретили break, прекращаем исполнение ветвей
+
+    // Обрабатываем все case-ветви; но если endSwitch == true — только "семантика" (неисполнение)
+    int pk = peekToken();
+    while (pk == KW_CASE) {
+        if (!endSwitch) {
+            // выполняем / семантически проверяем ветку как раньше; CaseStmt должна вернуть true, если encountered break, и нужно завершить выполнение switch
+            if (CaseStmt(switchVal, anyMatched)) {
+                endSwitch = true;
+            }
+        }
+        else {
+            // уже было break — дальше должны просто разобрать (семантика) все последующие case
+            bool wasInterp = Tree::isInterpretationEnabled();
+            if (wasInterp) Tree::disableInterpretation();
+            // вызываем CaseStmt для синтаксического разбора; она не должна выполнять ветки, т.к. интерпретация выключена
+            CaseStmt(switchVal, anyMatched);
+            if (wasInterp) Tree::enableInterpretation();
+        }
+        pk = peekToken();
     }
 
+    // Далее может быть default — если после break, просто разобрать его семантически
     if (peekToken() == KW_DEFAULT) {
-        DefaultStmt();
+        if (!endSwitch) {
+            if (DefaultStmt(anyMatched)) {
+                endSwitch = true;
+            }
+        }
+        else {
+            bool wasInterp = Tree::isInterpretationEnabled();
+            if (wasInterp) Tree::disableInterpretation();
+            DefaultStmt(anyMatched);
+            if (wasInterp) Tree::enableInterpretation();
+        }
     }
 
+    // На этом месте ожидаем закрывающую скобку
     t = nextToken();
     if (t != RBRACE) synError("ожидался '}' в конце switch");
 }
 
 // CaseStmt -> 'case' Const ':' Stmt*
-void Diagram::CaseStmt() {
+bool Diagram::CaseStmt(long long switchVal, bool& anyMatched) {
     int t = nextToken();
     if (t != KW_CASE) synError("ожидался 'case'");
 
@@ -494,43 +539,93 @@ void Diagram::CaseStmt() {
         semError("case принимает только числовую константу");
     }
 
+    // получаем значение case
+    long long caseVal = 0;
+    try {
+        caseVal = std::stoll(curLex, nullptr, 0);
+    }
+    catch (...) {
+        semError("неверная константа в case");
+    }
+
     t = nextToken();
     if (t != COLON) synError("ожидался ':' после case-значения");
 
-    t = peekToken();
-    while (t != KW_CASE && t != KW_DEFAULT && t != RBRACE && t != T_END) {
-        if (t == KW_BREAK) {
-            nextToken();
-            t = nextToken();
-            if (t != SEMI) synError("ожидался ';' после break");
+    bool matched = (!anyMatched && caseVal == switchVal);
+    if (matched) anyMatched = true;
+
+    // Обрабатываем последовательность операторов внутри case
+    while (true) {
+        int p = peekToken();
+        if (p == KW_CASE || p == KW_DEFAULT || p == RBRACE || p == T_END) break;
+
+        if (p == KW_BREAK) {
+            nextToken(); // consume break
+            int semi = nextToken();
+            if (semi != SEMI) synError("ожидался ';' после break");
+            // Если мы исполняли этот case (matched==true), то break прекращает весь switch
+            return matched;
         }
         else {
-            Stmt();
+            if (Tree::isInterpretationEnabled()) {
+                if (matched) {
+                    Stmt(); // выполняем операторы в этой ветке
+                }
+                else {
+                    // Не эта ветка — выполняем только семантику: временно выключаем интерпретацию
+                    bool saveInterp = Tree::isInterpretationEnabled();
+                    if (saveInterp) Tree::disableInterpretation();
+                    Stmt();
+                    if (saveInterp) Tree::enableInterpretation();
+                }
+            }
+            else {
+                // Интерпретация выключена — просто семантика
+                Stmt();
+            }
         }
-        t = peekToken();
     }
+
+    return false;
 }
 
 // DefaultStmt -> 'default' ':' Stmt*
-void Diagram::DefaultStmt() {
+bool Diagram::DefaultStmt(bool anyMatched) {
     int t = nextToken();
     if (t != KW_DEFAULT) synError("ожидался 'default'");
 
     t = nextToken();
     if (t != COLON) synError("ожидался ':' после default");
 
-    t = peekToken();
-    while (t != RBRACE && t != T_END) {
-        if (t == KW_BREAK) {
+    bool matched = !anyMatched;
+
+    while (true) {
+        int p = peekToken();
+        if (p == KW_CASE || p == RBRACE || p == T_END) break;
+
+        if (p == KW_BREAK) {
             nextToken();
-            t = nextToken();
-            if (t != SEMI) synError("ожидался ';' после break");
+            int semi = nextToken();
+            if (semi != SEMI) synError("ожидался ';' после break");
+            return matched;
         }
         else {
-            Stmt();
+            if (Tree::isInterpretationEnabled()) {
+                if (matched) Stmt();
+                else {
+                    bool saveInterp = Tree::isInterpretationEnabled();
+                    if (saveInterp) Tree::disableInterpretation();
+                    Stmt();
+                    if (saveInterp) Tree::enableInterpretation();
+                }
+            }
+            else {
+                Stmt();
+            }
         }
-        t = peekToken();
     }
+
+    return false;
 }
 
 // Call -> IDENT '(' ArgListOpt ')'
@@ -553,14 +648,72 @@ void Diagram::Call() {
 
     // Преобразуем аргументы в типы для проверки
     std::vector<DATA_TYPE> argTypes;
-    for (const auto& arg : args) {
-        argTypes.push_back(arg.DataType);
-    }
+    for (const auto& arg : args) argTypes.push_back(arg.DataType);
 
+    // Семантическая проверка параметров
     fnode->semControlParamTypes(fnode, argTypes, lc.first, lc.second);
 
-    // Выполняем вызов функции
-    Tree::executeFunctionCall(fname, args, lc.first, lc.second);
+    // Печать вызова (семантика/лог)
+    Tree::printFunctionCall(fname, args, lc.first, lc.second);
+
+    // Если интерпретация выключена — больше ничего не делаем (только семантика)
+    if (!Tree::isInterpretationEnabled()) return;
+
+    // --- Выполнение реального вызова функции ---
+    // 1) клонируем область функции (чтобы параметры/локалы были отдельными)
+    Tree* funcScope = fnode->Right; // у тебя тело/область функции хранится здесь
+    if (!funcScope) {
+        interpError("отсутствует тело функции при вызове '" + fname + "'");
+    }
+
+    Tree* tmpScope = Tree::cloneSubtree(funcScope);
+    if (!tmpScope) {
+        interpError("не удалось клонировать область функции '" + fname + "'");
+    }
+
+    // 2) сохраняем контекст парсера/сканера
+    size_t savedPos = sc->getPos();
+    auto savedPushTok = pushTok;
+    auto savedPushLex = pushLex;
+    int savedCurTok = curTok;
+    string savedCurLex = curLex;
+    Tree* savedCurTree = Tree::getCur();
+    Tree* savedCurrentFunction = Tree::getCurrentFunction();
+
+    // 3) переключаем текущую область на временную копию
+    Tree::setCur(tmpScope);
+    Tree::setCurrentFunction(fnode);
+
+    // 4) подставляем значения параметров в tmpScope
+    Tree* p = tmpScope->Left;
+    for (size_t i = 0; i < args.size(); ++i) {
+        if (!p) break;
+        if (p->n) {
+            p->n->hasValue = true;
+            p->n->Value = args[i].Value;
+            p->n->DataType = args[i].DataType; // хотя тип уже должен быть задан
+        }
+        p = p->Right;
+    }
+
+    // 5) ставим сканер на начало тела функции и исполняем Block()
+    size_t bodyStart = fnode->n ? fnode->n->bodyStartPos : 0;
+    sc->setPos(bodyStart);
+
+    // Выполняем тело (Block() использует Tree::Cur и интерпретацию включена)
+    Block();
+
+    // 6) восстановление контекста
+    sc->setPos(savedPos);
+    pushTok = savedPushTok;
+    pushLex = savedPushLex;
+    curTok = savedCurTok;
+    curLex = savedCurLex;
+    Tree::setCur(savedCurTree);
+    Tree::setCurrentFunction(savedCurrentFunction);
+
+    // 7) удаляем временную область
+    delete tmpScope;
 }
 
 // ArgListOpt -> [Expr (',' Expr)*]

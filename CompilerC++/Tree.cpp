@@ -797,3 +797,21 @@ void Tree::printArithmeticOp(const string& op, const SemNode& left, const SemNod
 void Tree::enableDebug() { debug = true; }
 void Tree::disableDebug() { debug = false; }
 bool Tree::isDebugEnabled() { return debug; }
+
+Tree* Tree::cloneSubtree(Tree* node) {
+    if (!node) return nullptr;
+
+    // Создаём новый узел Tree копированием "поверхностных" полей
+    Tree* copy = new Tree(*node); // shallow copy всех полей
+
+    // Если у вас есть указатель на семантический узел (SemNode* n), делаем его глубокую копию
+    if (node->n) {
+        copy->n = new SemNode(*node->n);
+    }
+
+    // Рекурсивно клонируем дочерние узлы (имена полей Left/Right заменяй на свои)
+    copy->Left = cloneSubtree(node->Left);
+    copy->Right = cloneSubtree(node->Right);
+
+    return copy;
+}

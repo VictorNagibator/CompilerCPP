@@ -80,6 +80,9 @@ public:
     static void setCurrentFunction(Tree* func) { currentFunction = func; }
     static Tree* getCurrentFunction() { return currentFunction; }
 
+    // Создаёт глубокую копию поддерева (узел + его дочерние узлы)
+    static Tree* cloneSubtree(Tree* node);
+
 private:
     void print(int depth);
     std::string makeLabel(const Tree* tree) const;

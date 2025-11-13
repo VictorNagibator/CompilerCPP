@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
 
     // Разбор
     Diagram dg(&sc);
-    dg.ParseProgram(false, false);
+    dg.ParseProgram(true, true);
 
     return 0;
 }

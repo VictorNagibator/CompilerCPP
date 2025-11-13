@@ -15,6 +15,12 @@ public:
 
     std::pair<int, int> getLineCol() const;
 
+    // возвращает текущую позицию/индекс в внутреннем буфере/строке
+    size_t getPos() const;
+
+    // устанавливает позицию — после этого следующий вызов чтения будет с этой позиции
+    void setPos(size_t pos);
+
 private:
     string text; // исходный текст + завершающий '\0'
     size_t currentPos; // текущая позиция в text

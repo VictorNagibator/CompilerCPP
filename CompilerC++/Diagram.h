@@ -42,8 +42,8 @@ private:
     void Assign();
     void CallStmt();
     void SwitchStmt();
-    void CaseStmt();
-    void DefaultStmt();
+    bool CaseStmt(long long switchVal, bool& anyMatched);
+    bool DefaultStmt(bool anyMatched);
     void Name();
 
     // Выражения с интерпретацией

@@ -253,3 +253,11 @@ std::pair<int, int> Scanner::getLineCol() const {
     }
     return { line, col };
 }
+
+size_t Scanner::getPos() const {
+    return currentPos;
+}
+
+void Scanner::setPos(size_t pos) {
+    currentPos = pos; 
+}
