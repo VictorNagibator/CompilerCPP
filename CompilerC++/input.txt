@@ -10,7 +10,9 @@ void mult(int n) {
 
 void main() {
     int n = 10;
-    int choice = 1;
+    int choice = 0;
+    
+    a = a + 1;
 
     switch (choice) {
         case 0:
@@ -20,7 +22,9 @@ void main() {
             mult(n);
             break;
         default:
-            a = 999;
+            a = 0;
             break;
     }
+
+    a = a * 2 + 1;
 }

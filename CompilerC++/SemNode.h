@@ -27,4 +27,38 @@ struct SemNode {
     // Используются при интерпретации: перейти на начало тела и повторно распарсить/выполнить.
     size_t bodyStartPos = 0;
     size_t bodyEndPos = 0;
+
+    SemNode() : id(""), DataType(TYPE_INT), hasValue(false), Param(0),
+        line(0), col(0), bodyStartPos(0), bodyEndPos(0) {
+        Value.v_int64 = 0;
+    }
+
+    SemNode(const SemNode& other)
+        : id(other.id),
+        DataType(other.DataType),
+        hasValue(other.hasValue),
+        Param(other.Param),
+        ParamTypes(other.ParamTypes),
+        line(other.line),
+        col(other.col),
+        bodyStartPos(other.bodyStartPos),
+        bodyEndPos(other.bodyEndPos)
+    {
+        Value = other.Value;
+    }
+
+    SemNode& operator=(const SemNode& other) {
+        if (this == &other) return *this;
+        id = other.id;
+        DataType = other.DataType;
+        hasValue = other.hasValue;
+        Param = other.Param;
+        ParamTypes = other.ParamTypes;
+        Value = other.Value;
+        line = other.line;
+        col = other.col;
+        bodyStartPos = other.bodyStartPos;
+        bodyEndPos = other.bodyEndPos;
+        return *this;
+    }
 };

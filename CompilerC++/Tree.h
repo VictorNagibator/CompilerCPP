@@ -83,6 +83,9 @@ public:
     // Создаёт глубокую копию поддерева (узел + его дочерние узлы)
     static Tree* cloneSubtree(Tree* node);
 
+    static Tree* cloneRecursive(const Tree* node);
+    static void fixUpPointers(Tree* copy, Tree* parentUp);
+
 private:
     void print(int depth);
     std::string makeLabel(const Tree* tree) const;

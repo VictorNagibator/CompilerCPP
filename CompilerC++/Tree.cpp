@@ -16,7 +16,7 @@ void Tree::printTypeConversionWarning(DATA_TYPE from, DATA_TYPE to, const string
     const string& expression, int line, int col) {
 
     // Выводим только если включен debug режим
-    if (!debug) return;
+    if (!debug || !interpretationEnabled) return;
 
     std::cerr << "Предупреждение: неявное преобразование типа ";
 
@@ -154,13 +154,17 @@ Tree* Tree::semInclude(const string& a, DATA_TYPE t, int line, int col) {
         emptyNode->line = line;
         emptyNode->col = col;
 
-        funcNode->setRight(emptyNode);
+        // ВАЖНО: scope должен быть child (Left) функции, а не её "правым соседом".
+        funcNode->setLeft(emptyNode);
+
+        // Вернуть указатель на функцию (как и раньше)
         return funcNode;
     }
     else {
         Cur->setLeft(node);
         Tree* added = Cur->Left;
         while (added->Right) added = added->Right;
+
         return added;
     }
 }
@@ -281,59 +285,59 @@ void Tree::semExitBlock() {
 void Tree::setVarValue(const string& name, const SemNode& value, int line, int col) {
     Tree* varNode = Cur->semGetVar(name, line, col);
 
-    if (value.hasValue) {
-        if (canImplicitCast(value.DataType, varNode->n->DataType)) {
-            // Проверяем обрезку значений для ВСЕХ типов
-            bool needsTruncationWarning = false;
-            long long originalValue = 0;
-
-            // Получаем оригинальное значение в long long
-            switch (value.DataType) {
-                case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
-                case TYPE_INT: originalValue = value.Value.v_int32; break;
-                case TYPE_LONG_INT: originalValue = value.Value.v_int64; break;
-                default: break;
-            }
-
-            // Проверяем обрезку для типа переменной
-            if (varNode->n->DataType == TYPE_SHORT_INT) {
-                if (originalValue < -32768 || originalValue > 32767) {
-                    needsTruncationWarning = true;
-                }
-            }
-            else if (varNode->n->DataType == TYPE_INT) {
-                if (originalValue < -2147483648LL || originalValue > 2147483647LL) {
-                    needsTruncationWarning = true;
-                }
-            }
-            // Для long проверка не нужна, так как он самый большой
-
-            // Выводим предупреждение об обрезке ВСЕГДА (независимо от debug)
-            if (needsTruncationWarning) {
-                std::cerr << "Предупреждение: значение " << originalValue
-                    << " обрезается при преобразовании к "
-                    << (varNode->n->DataType == TYPE_SHORT_INT ? "short" : "int");
-                std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
-            }
-            // Выводим предупреждение о преобразовании типов только в debug режиме
-            else if (value.DataType != varNode->n->DataType && debug) {
-                printTypeConversionWarning(value.DataType, varNode->n->DataType,
-                    "присваивании", name + " = ...", line, col);
-            }
-
-            SemNode converted = castToType(value, varNode->n->DataType, line, col);
-            varNode->n->Value = converted.Value;
-            varNode->n->hasValue = true;
-
-            printAssignment(name, converted, line, col);
-        }
-        else {
-            semError("несовместимые типы при присваивании", name, line, col);
-        }
-    }
-    else {
+    if (!value.hasValue) {
         interpError("попытка присвоить NULL", name, line, col);
     }
+
+    // Проверка совместимости типов
+    if (!canImplicitCast(value.DataType, varNode->n->DataType)) {
+        semError("несовместимые типы при присваивании", name, line, col);
+    }
+
+    // Проверяем обрезку значений для ВСЕХ типов (как было)
+    bool needsTruncationWarning = false;
+    long long originalValue = 0;
+    switch (value.DataType) {
+    case TYPE_SHORT_INT: originalValue = value.Value.v_int16; break;
+    case TYPE_INT:       originalValue = value.Value.v_int32; break;
+    case TYPE_LONG_INT:  originalValue = value.Value.v_int64; break;
+    default: break;
+    }
+
+    if (varNode->n->DataType == TYPE_SHORT_INT) {
+        if (originalValue < -32768 || originalValue > 32767) needsTruncationWarning = true;
+    }
+    else if (varNode->n->DataType == TYPE_INT) {
+        if (originalValue < -2147483648LL || originalValue > 2147483647LL) needsTruncationWarning = true;
+    }
+
+    if (needsTruncationWarning) {
+        std::cerr << "Предупреждение: значение " << originalValue
+            << " обрезается при преобразовании к "
+            << (varNode->n->DataType == TYPE_SHORT_INT ? "short" : "int");
+        std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
+    }
+    else if (value.DataType != varNode->n->DataType && debug) {
+        printTypeConversionWarning(value.DataType, varNode->n->DataType,
+            "присваивании", name + " = ...", line, col);
+    }
+
+    // Выполняем приведение значения к типу переменной
+    SemNode converted = castToType(value, varNode->n->DataType, line, col);
+
+    // Если интерпретация выключена — мы в семантическом режиме: не меняем runtime-значение в дереве,
+    // но пометим переменную как инициализированную (чтобы дальнейшая семантика в том же блоке работала)
+    if (!Tree::isInterpretationEnabled()) {
+        // Пометка "инициализирована" для семантики
+        varNode->n->hasValue = true;
+        return;
+    }
+
+    // Нормальное (runtime) присваивание — только если интерпретация включена
+    varNode->n->Value = converted.Value;
+    varNode->n->hasValue = true;
+
+    printAssignment(name, converted, line, col);
 }
 
 SemNode Tree::getVarValue(const string& name, int line, int col) {
@@ -800,18 +804,30 @@ bool Tree::isDebugEnabled() { return debug; }
 
 Tree* Tree::cloneSubtree(Tree* node) {
     if (!node) return nullptr;
+    return cloneRecursive(node);
+}
 
-    // Создаём новый узел Tree копированием "поверхностных" полей
-    Tree* copy = new Tree(*node); // shallow copy всех полей
-
-    // Если у вас есть указатель на семантический узел (SemNode* n), делаем его глубокую копию
+Tree* Tree::cloneRecursive(const Tree* node) {
+    if (!node) return nullptr;
+    Tree* copy = new Tree(nullptr, nullptr);
     if (node->n) {
-        copy->n = new SemNode(*node->n);
+        copy->n = new SemNode(*node->n); // использует copy-ctor SemNode
     }
-
-    // Рекурсивно клонируем дочерние узлы (имена полей Left/Right заменяй на свои)
-    copy->Left = cloneSubtree(node->Left);
-    copy->Right = cloneSubtree(node->Right);
-
+    copy->Left = cloneRecursive(node->Left);
+    copy->Right = cloneRecursive(node->Right);
     return copy;
+}
+
+void Tree::fixUpPointers(Tree* copy, Tree* parentUp) {
+    if (!copy) return;
+    copy->Up = parentUp;
+    if (copy->Left) {
+        // левый потомок — его Up должен быть текущий 'copy'
+        // рекурсивно идём внутрь
+        fixUpPointers(copy->Left, copy);
+    }
+    if (copy->Right) {
+        // правый сосед — его Up должен быть тот же parentUp (как в оригинале)
+        fixUpPointers(copy->Right, parentUp);
+    }
 }
