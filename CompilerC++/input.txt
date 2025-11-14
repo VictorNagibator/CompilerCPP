@@ -16,35 +16,21 @@ void div(int n) {
     a = a / n;
 }
 
-void rec() { rec(); }
-
 void main() {
-    int n = 1;
-    int choice = 3;
-
-    switch (choice) {
+    short n = 2;
+    short choice = 2;
+    switch(choice - 1) {
         case 0:
             add(n);
             break;
-            a = 0;
         case 1:
-            mult(n);
+            mult(-1);
         case 2:
-            {
-                int n;
-                n = 5;
-                sub(n, n); 
-            }
-            break;
-        case 3:
-            div(n);
+            sub(1, - 1);
             break;
             a = 999;
         default:
-            a = a / 0;
+            div(n);
             break;
     }
-    a = n * n - a;
-
-    rec();
 }

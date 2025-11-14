@@ -711,11 +711,19 @@ void Diagram::Call() {
     // Установим значения параметров согласно args (по порядку)
     Tree* copyP = tmpScope->Left;
     for (size_t i = 0; copyP && i < args.size(); copyP = copyP->Right, ++i) {
-        if (copyP->n) {
-            copyP->n->hasValue = args[i].hasValue;
-            copyP->n->Value = args[i].Value;
-            // Необходимо гарантировать корректный DataType (берём из оригинала)
-            // (у нас pcopy был создан из origP, так DataType уже скопирован)
+        if (!copyP->n) continue;
+
+        // Приводим аргумент к типу формального параметра
+        SemNode converted = Tree::castToType(args[i], copyP->n->DataType, lc.first, lc.second);
+
+        // Сохраняем значение и помечаем как инициализированное
+        copyP->n->hasValue = converted.hasValue;
+        copyP->n->Value = converted.Value;
+
+        // Печатаем предупреждение о неявном преобразовании при debug (как в setVarValue)
+        if (args[i].DataType != copyP->n->DataType && Tree::isDebugEnabled()) {
+            Tree::printTypeConversionWarning(args[i].DataType, copyP->n->DataType,
+                "передаче параметра", copyP->n->id + " в " + fname + "()", lc.first, lc.second);
         }
     }
 
