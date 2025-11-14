@@ -11,6 +11,18 @@ Tree* Tree::Cur = nullptr;
 bool Tree::interpretationEnabled = true; // По умолчанию включена
 bool Tree::debug = true; // По умолчанию включен подробный вывод
 Tree* Tree::currentFunction = nullptr; 
+int Tree::recursionDepth = 0;
+
+void Tree::enterFunctionCall(const string& funcName, int line, int col) {
+    recursionDepth++;
+    if (recursionDepth > MAX_RECURSION_DEPTH) {
+        interpError("превышение глубины рекурсии", funcName, line, col);
+    }
+}
+
+void Tree::exitFunctionCall() {
+    if (recursionDepth > 0) recursionDepth--;
+}
 
 void Tree::printTypeConversionWarning(DATA_TYPE from, DATA_TYPE to, const string& context,
     const string& expression, int line, int col) {

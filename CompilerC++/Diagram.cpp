@@ -673,6 +673,9 @@ void Diagram::Call() {
     // Если интерпретация выключена — не выполняем
     if (!Tree::isInterpretationEnabled()) return;
 
+    // Проверка ограничения рекурсии (входим в вызов)
+    Tree::enterFunctionCall(fname, lc.first, lc.second);
+
     // Получаем область функции (scope) — оригинальную (распарсенную при компиляции)
     Tree* funcScope = fnode->Left;
     if (!funcScope) interpError("отсутствует тело функции при вызове '" + fname + "'");
@@ -726,6 +729,9 @@ void Diagram::Call() {
 
     // Выполняем блок тела функции (он распарсится заново, но уже в контексте tmpScope)
     Block();
+
+    // С выходом из тела функции — уменьшаем счётчик рекурсии
+    Tree::exitFunctionCall();
 
     // Восстановка контекста
     sc->setPos(savedPos);

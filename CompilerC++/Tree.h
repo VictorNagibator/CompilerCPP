@@ -86,6 +86,9 @@ public:
     static Tree* cloneRecursive(const Tree* node);
     static void fixUpPointers(Tree* copy, Tree* parentUp);
 
+    static void enterFunctionCall(const string& funcName, int line = -1, int col = -1);
+    static void exitFunctionCall();
+
 private:
     void print(int depth);
     std::string makeLabel(const Tree* tree) const;
@@ -93,4 +96,8 @@ private:
     // Флаг интерпретации
     static bool interpretationEnabled;
     static bool debug; // флаг для подробного вывода
+
+    // глубина рекурсии
+    static int recursionDepth;
+    static const int MAX_RECURSION_DEPTH = 50;
 };
