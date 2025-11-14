@@ -444,6 +444,8 @@ SemNode Tree::executeArithmeticOp(const SemNode& left, const SemNode& right, con
     result.DataType = resultType;
     result.hasValue = true;
 
+    if (!interpretationEnabled) return result;
+
     switch (resultType) {
     case TYPE_SHORT_INT:
         if (op == "+") result.Value.v_int16 = leftConv.Value.v_int16 + rightConv.Value.v_int16;
@@ -509,6 +511,8 @@ SemNode Tree::executeShiftOp(const SemNode& left, const SemNode& right, const st
     result.DataType = left.DataType; // Результат имеет тип левого операнда
     result.hasValue = true;
 
+    if (!interpretationEnabled) return result;
+
     // Приводим правый операнд к int для сдвига
     SemNode rightConv = castToType(right, TYPE_INT, line, col);
 
@@ -548,6 +552,8 @@ SemNode Tree::executeComparisonOp(const SemNode& left, const SemNode& right, con
     SemNode result;
     result.DataType = TYPE_BOOL;
     result.hasValue = true;
+
+    if (!interpretationEnabled) return result;
 
     switch (resultType) {
     case TYPE_SHORT_INT:

@@ -8,23 +8,37 @@ void mult(int n) {
     a = a * n;
 }
 
+void sub(int n, int m) {
+    a = a - (n + m);
+}
+
+void div(int n) {
+    a = a / n;
+}
+
 void main() {
     int n = 10;
-    int choice = 0;
-    
-    a = a + 1;
+    int choice = 3421;
 
     switch (choice) {
         case 0:
             add(n);
             break;
+            a = 0;
         case 1:
             mult(n);
+        case 2:
+            sub(n, n);
             break;
+        case 3:
+            div(n);
+            break;
+
+            a = 999;
         default:
             a = 0;
             break;
     }
 
-    a = a * 2 + 1;
+    a = n * n - a;
 }

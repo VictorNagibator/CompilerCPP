@@ -565,37 +565,44 @@ bool Diagram::CaseStmt(long long switchVal, bool& anyMatched) {
     bool matched = (!anyMatched && caseVal == switchVal);
     if (matched) anyMatched = true;
 
-    while (true) {
+    bool branchBroken = false; // встретили break в этой ветке (выполняемой или нет)
+
+    for (;;) {
         int p = peekToken();
         if (p == KW_CASE || p == KW_DEFAULT || p == RBRACE || p == T_END) break;
 
         if (p == KW_BREAK) {
-            nextToken();
+            nextToken(); // съели KW_BREAK
             int semi = nextToken();
             if (semi != SEMI) synError("ожидался ';' после break");
-            // Если мы исполняли этот case (matched==true), break прекращает весь switch
-            return matched;
+
+            // независимо от matched — нужно продолжить синтаксический разбор
+            // но пометить, что break был (если matched==true — это остановит исполнение внешнего switch)
+            branchBroken = true;
+            // после break все оставшиеся операторы в этой ветке недостижимы,
+            // поэтому мы будем разбирать их только семантически (не исполняя)
+            continue;
         }
-        else {
-            if (Tree::isInterpretationEnabled()) {
-                if (matched) {
-                    Stmt(); // выполняем операторы этой ветки
-                }
-                else {
-                    // семантика без исполнения
-                    bool saveInterp = Tree::isInterpretationEnabled();
-                    if (saveInterp) Tree::disableInterpretation();
-                    Stmt();
-                    if (saveInterp) Tree::enableInterpretation();
-                }
+
+        // Обычный разбор оператора: исполнение только если matched и ещё не было break
+        if (Tree::isInterpretationEnabled()) {
+            if (matched && !branchBroken) {
+                Stmt(); // выполняем
             }
             else {
-                // интерпретация выключена — просто семантика
-                Stmt();
+                bool save = Tree::isInterpretationEnabled();
+                if (save) Tree::disableInterpretation();
+                Stmt(); // только семантика
+                if (save) Tree::enableInterpretation();
             }
         }
+        else {
+            Stmt(); // интерпретация выключена — только семантика
+        }
     }
-    return false;
+
+    // вернём true только если совпавшая ветка включала break (тогда внешний Switch прекратит исполнение)
+    return (matched && branchBroken);
 }
 
 // DefaultStmt -> 'default' ':' Stmt*

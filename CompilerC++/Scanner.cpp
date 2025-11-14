@@ -259,5 +259,5 @@ size_t Scanner::getPos() const {
 }
 
 void Scanner::setPos(size_t pos) {
-    currentPos = pos; 
+    currentPos = pos;
 }
