@@ -8,6 +8,8 @@ public:
 
     // Загрузить файл; вернуть true при успехе
     bool loadFile(const string& fileName);
+    // Загрузить исходный текст из строки
+    void loadFromString(const std::string& source);
 
     // Получить следующую лексему; лексема записывается в outLex
     // Возвращает её код 

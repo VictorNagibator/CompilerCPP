@@ -13,14 +13,14 @@ void Diagram::synError(const string& msg) {
     std::cerr << "Синтаксическая ошибка: " << msg;
     if (!curLex.empty()) std::cerr << " (около '" << curLex << "')";
     std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
-    std::exit(1);
+    throw std::runtime_error("Синтаксическая ошибка");
 }
 
 void Diagram::lexError() {
     auto lc = sc->getLineCol();
     std::cerr << "Лексическая ошибка: неизвестная лексема '" << curLex << "'";
     std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
-    std::exit(1);
+    throw std::runtime_error("Лексическая ошибка");
 }
 
 void Diagram::interpError(const string& msg) {

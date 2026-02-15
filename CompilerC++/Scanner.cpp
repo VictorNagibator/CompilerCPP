@@ -261,3 +261,9 @@ size_t Scanner::getPos() const {
 void Scanner::setPos(size_t pos) {
     currentPos = pos;
 }
+
+void Scanner::loadFromString(const string& source) {
+    text = source;
+    text.push_back('\0');
+    currentPos = 0;
+}

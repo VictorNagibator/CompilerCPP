@@ -62,14 +62,14 @@ void Tree::semError(const string& msg, const string& id, int line, int col) {
     std::cerr << "Семантическая ошибка: " << msg;
     if (!id.empty()) std::cerr << " (около '" << id << "')";
     std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
-    std::exit(1);
+    throw std::runtime_error("Семантическая ошибка");
 }
 
 void Tree::interpError(const string& msg, const string& id, int line, int col) {
     std::cerr << "Ошибка при интерпретации: " << msg;
     if (!id.empty()) std::cerr << " (около '" << id << "')";
     std::cerr << std::endl << "(строка " << line << ":" << col << ")" << std::endl;
-    std::exit(1);
+    throw std::runtime_error("Ошибка при интерпретации");
 }
 
 // Конструктор
