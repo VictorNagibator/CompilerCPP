@@ -1,25 +1,25 @@
 #include "pch.h"                   
 #include "CppUnitTest.h"   
 
-#include "../CompilerC++/Scanner.cpp" // Реализация лексера
-#include "../CompilerC++/Tree.cpp" // Реализация семантического дерева
-#include "../CompilerC++/DataType.h" // Типы данных
-#include "../CompilerC++/Defines.h" // Коды лексем
+#include "../CompilerC++/Scanner.cpp" // Р РµР°Р»РёР·Р°С†РёСЏ Р»РµРєСЃРµСЂР°
+#include "../CompilerC++/Tree.cpp" // Р РµР°Р»РёР·Р°С†РёСЏ СЃРµРјР°РЅС‚РёС‡РµСЃРєРѕРіРѕ РґРµСЂРµРІР°
+#include "../CompilerC++/DataType.h" // РўРёРїС‹ РґР°РЅРЅС‹С…
+#include "../CompilerC++/Defines.h" // РљРѕРґС‹ Р»РµРєСЃРµРј
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace std;
 
 namespace UnitTests
 {
-    // Сброс глобального состояния дерева (Tree).
-    // Поскольку Tree содержит статические поля (Root, Cur и флаги), необходимо
-    // перед каждым тестом, который их использует, приводить дерево в исходное состояние,
-    // чтобы тесты не влияли друг на друга
+    // РЎР±СЂРѕСЃ РіР»РѕР±Р°Р»СЊРЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ РґРµСЂРµРІР° (Tree).
+    // РџРѕСЃРєРѕР»СЊРєСѓ Tree СЃРѕРґРµСЂР¶РёС‚ СЃС‚Р°С‚РёС‡РµСЃРєРёРµ РїРѕР»СЏ (Root, Cur Рё С„Р»Р°РіРё), РЅРµРѕР±С…РѕРґРёРјРѕ
+    // РїРµСЂРµРґ РєР°Р¶РґС‹Рј С‚РµСЃС‚РѕРј, РєРѕС‚РѕСЂС‹Р№ РёС… РёСЃРїРѕР»СЊР·СѓРµС‚, РїСЂРёРІРѕРґРёС‚СЊ РґРµСЂРµРІРѕ РІ РёСЃС…РѕРґРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ,
+    // С‡С‚РѕР±С‹ С‚РµСЃС‚С‹ РЅРµ РІР»РёСЏР»Рё РґСЂСѓРі РЅР° РґСЂСѓРіР°
     void ResetTree()
     {
-        Tree::reset(); // Метод, обнуляющий всё дерево
+        Tree::reset(); // РњРµС‚РѕРґ, РѕР±РЅСѓР»СЏСЋС‰РёР№ РІСЃС‘ РґРµСЂРµРІРѕ
 
-        // После сброса создаём корневую область видимости
+        // РџРѕСЃР»Рµ СЃР±СЂРѕСЃР° СЃРѕР·РґР°С‘Рј РєРѕСЂРЅРµРІСѓСЋ РѕР±Р»Р°СЃС‚СЊ РІРёРґРёРјРѕСЃС‚Рё
         SemNode* rootNode = new SemNode();
         rootNode->id = "root";
         rootNode->DataType = TYPE_SCOPE;
@@ -27,22 +27,22 @@ namespace UnitTests
         Tree::Cur = Tree::Root;
     }
 
-    // Тесты лексера
+    // РўРµСЃС‚С‹ Р»РµРєСЃРµСЂР°
     TEST_CLASS(ScannerTests)
     {
     public:
-        // 1. Проверка распознавания ключевого слова int
+        // 1. РџСЂРѕРІРµСЂРєР° СЂР°СЃРїРѕР·РЅР°РІР°РЅРёСЏ РєР»СЋС‡РµРІРѕРіРѕ СЃР»РѕРІР° int
         TEST_METHOD(TestKeywordInt)
         {
             Scanner sc;
-            sc.loadFromString("int"); // Загружаем строку
+            sc.loadFromString("int"); // Р—Р°РіСЂСѓР¶Р°РµРј СЃС‚СЂРѕРєСѓ
             string lex;
             int tok = sc.getNextLex(lex);
 
-            Assert::AreEqual(KW_INT, tok); // Ожидаем код ключевого слова
+            Assert::AreEqual(KW_INT, tok); // РћР¶РёРґР°РµРј РєРѕРґ РєР»СЋС‡РµРІРѕРіРѕ СЃР»РѕРІР°
         }
 
-        // 2. Проверка идентификатора (имя переменной/функции)
+        // 2. РџСЂРѕРІРµСЂРєР° РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР° (РёРјСЏ РїРµСЂРµРјРµРЅРЅРѕР№/С„СѓРЅРєС†РёРё)
         TEST_METHOD(TestIdentifier)
         {
             Scanner sc;
@@ -53,7 +53,7 @@ namespace UnitTests
             Assert::AreEqual(IDENT, tok);
         }
 
-        // 3. Десятичная константа
+        // 3. Р”РµСЃСЏС‚РёС‡РЅР°СЏ РєРѕРЅСЃС‚Р°РЅС‚Р°
         TEST_METHOD(TestDecConstant)
         {
             Scanner sc;
@@ -64,7 +64,7 @@ namespace UnitTests
             Assert::AreEqual(DEC_CONST, tok);
         }
 
-        // 4. Шестнадцатеричная константа (начинается с 0x)
+        // 4. РЁРµСЃС‚РЅР°РґС†Р°С‚РµСЂРёС‡РЅР°СЏ РєРѕРЅСЃС‚Р°РЅС‚Р° (РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ 0x)
         TEST_METHOD(TestHexConstant)
         {
             Scanner sc;
@@ -75,7 +75,7 @@ namespace UnitTests
             Assert::AreEqual(HEX_CONST, tok);
         }
 
-        // 5. Проверка пропуска однострочных (//) и многострочных (/* */) комментариев
+        // 5. РџСЂРѕРІРµСЂРєР° РїСЂРѕРїСѓСЃРєР° РѕРґРЅРѕСЃС‚СЂРѕС‡РЅС‹С… (//) Рё РјРЅРѕРіРѕСЃС‚СЂРѕС‡РЅС‹С… (/* */) РєРѕРјРјРµРЅС‚Р°СЂРёРµРІ
         TEST_METHOD(TestSkipComments)
         {
             Scanner sc;
@@ -89,7 +89,7 @@ namespace UnitTests
             tok = sc.getNextLex(lex); Assert::AreEqual(DEC_CONST, tok); Assert::AreEqual(string("5"), lex);
         }
 
-        // 6. Все операторы и разделители
+        // 6. Р’СЃРµ РѕРїРµСЂР°С‚РѕСЂС‹ Рё СЂР°Р·РґРµР»РёС‚РµР»Рё
         TEST_METHOD(TestOperators)
         {
             Scanner sc;
@@ -121,17 +121,17 @@ namespace UnitTests
         }
     };
 
-    // Тесты семантических операций
+    // РўРµСЃС‚С‹ СЃРµРјР°РЅС‚РёС‡РµСЃРєРёС… РѕРїРµСЂР°С†РёР№
     TEST_CLASS(SemanticTests)
     {
     public:
-        // Перед каждым тестом сбрасываем дерево в исходное состояние
+        // РџРµСЂРµРґ РєР°Р¶РґС‹Рј С‚РµСЃС‚РѕРј СЃР±СЂР°СЃС‹РІР°РµРј РґРµСЂРµРІРѕ РІ РёСЃС…РѕРґРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
         TEST_METHOD_INITIALIZE(Init)
         {
             ResetTree();
         }
 
-        // 7. Добавление переменной в текущую область видимости и проверка, что она там есть
+        // 7. Р”РѕР±Р°РІР»РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ РІ С‚РµРєСѓС‰СѓСЋ РѕР±Р»Р°СЃС‚СЊ РІРёРґРёРјРѕСЃС‚Рё Рё РїСЂРѕРІРµСЂРєР°, С‡С‚Рѕ РѕРЅР° С‚Р°Рј РµСЃС‚СЊ
         TEST_METHOD(TestIncludeVariable)
         {
             Tree::Cur->semInclude("x", TYPE_INT, 1, 1);
@@ -139,35 +139,35 @@ namespace UnitTests
 
             Assert::IsNotNull(found);
             Assert::AreEqual(string("x"), found->n->id);
-            Assert::AreEqual((int)TYPE_INT, (int)found->n->DataType); // Enum требуется перевести в int - иначе не работает Assert :(
+            Assert::AreEqual((int)TYPE_INT, (int)found->n->DataType); // Enum С‚СЂРµР±СѓРµС‚СЃСЏ РїРµСЂРµРІРµСЃС‚Рё РІ int - РёРЅР°С‡Рµ РЅРµ СЂР°Р±РѕС‚Р°РµС‚ Assert :(
         }
 
-        // 8. Попытка повторного объявления в той же области
+        // 8. РџРѕРїС‹С‚РєР° РїРѕРІС‚РѕСЂРЅРѕРіРѕ РѕР±СЉСЏРІР»РµРЅРёСЏ РІ С‚РѕР№ Р¶Рµ РѕР±Р»Р°СЃС‚Рё
         TEST_METHOD(TestDuplicateVariable)
         {
             Tree::Cur->semInclude("x", TYPE_INT, 1, 1);
             bool dup = Tree::Cur->dupControl(Tree::Cur, "x");
 
-            Assert::IsTrue(dup); // dupControl должен вернуть true (повторное использование переменной!)
+            Assert::IsTrue(dup); // dupControl РґРѕР»Р¶РµРЅ РІРµСЂРЅСѓС‚СЊ true (РїРѕРІС‚РѕСЂРЅРѕРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№!)
         }
 
-        // 9. Поиск переменной в родительской области
+        // 9. РџРѕРёСЃРє РїРµСЂРµРјРµРЅРЅРѕР№ РІ СЂРѕРґРёС‚РµР»СЊСЃРєРѕР№ РѕР±Р»Р°СЃС‚Рё
         TEST_METHOD(TestFindVariableInParent)
         {
-            // Объявляем x в глобальной области
+            // РћР±СЉСЏРІР»СЏРµРј x РІ РіР»РѕР±Р°Р»СЊРЅРѕР№ РѕР±Р»Р°СЃС‚Рё
             Tree::Cur->semInclude("x", TYPE_INT, 1, 1);
-            // Входим во вложенный блок
+            // Р’С…РѕРґРёРј РІРѕ РІР»РѕР¶РµРЅРЅС‹Р№ Р±Р»РѕРє
             Tree::Cur->semEnterBlock(2, 1);
-            // Ищем x из блока — он должен найтись в родителе
+            // РС‰РµРј x РёР· Р±Р»РѕРєР° вЂ” РѕРЅ РґРѕР»Р¶РµРЅ РЅР°Р№С‚РёСЃСЊ РІ СЂРѕРґРёС‚РµР»Рµ
             Tree* found = Tree::Cur->findUp(Tree::Cur, "x");
 
             Assert::IsNotNull(found);
             Assert::AreEqual(string("x"), found->n->id);
 
-            Tree::Cur->semExitBlock(); // Возвращаемся в глобальную область
+            Tree::Cur->semExitBlock(); // Р’РѕР·РІСЂР°С‰Р°РµРјСЃСЏ РІ РіР»РѕР±Р°Р»СЊРЅСѓСЋ РѕР±Р»Р°СЃС‚СЊ
         }
 
-        // 10. Присваивание значения переменной и последующее чтение
+        // 10. РџСЂРёСЃРІР°РёРІР°РЅРёРµ Р·РЅР°С‡РµРЅРёСЏ РїРµСЂРµРјРµРЅРЅРѕР№ Рё РїРѕСЃР»РµРґСѓСЋС‰РµРµ С‡С‚РµРЅРёРµ
         TEST_METHOD(TestSetVarValue)
         {
             Tree::Cur->semInclude("y", TYPE_INT, 1, 1);
@@ -179,50 +179,50 @@ namespace UnitTests
             Tree::setVarValue("y", val, 1, 1);
             SemNode retrieved = Tree::getVarValue("y", 1, 1);
 
-            Assert::IsTrue(retrieved.hasValue); // Есть ли значение
-            Assert::AreEqual(42, retrieved.Value.v_int32); // Равно ли тому, что мы присвоили
+            Assert::IsTrue(retrieved.hasValue); // Р•СЃС‚СЊ Р»Рё Р·РЅР°С‡РµРЅРёРµ
+            Assert::AreEqual(42, retrieved.Value.v_int32); // Р Р°РІРЅРѕ Р»Рё С‚РѕРјСѓ, С‡С‚Рѕ РјС‹ РїСЂРёСЃРІРѕРёР»Рё
         }
 
-        // 11. Повторное объявление переменной с тем же именем в разных блоках
+        // 11. РџРѕРІС‚РѕСЂРЅРѕРµ РѕР±СЉСЏРІР»РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ СЃ С‚РµРј Р¶Рµ РёРјРµРЅРµРј РІ СЂР°Р·РЅС‹С… Р±Р»РѕРєР°С…
         TEST_METHOD(TestDupDifferentScope)
         {
-            // Объявляем x во внешнем блоке
+            // РћР±СЉСЏРІР»СЏРµРј x РІРѕ РІРЅРµС€РЅРµРј Р±Р»РѕРєРµ
             Tree::Cur->semInclude("x", TYPE_INT, 1, 1);
-            // Входим во внутренний блок
+            // Р’С…РѕРґРёРј РІРѕ РІРЅСѓС‚СЂРµРЅРЅРёР№ Р±Р»РѕРє
             Tree* block = Tree::Cur->semEnterBlock(2, 1);
-            // Во внутреннем блоке ещё нет x - dupControl должен вернуть false
+            // Р’Рѕ РІРЅСѓС‚СЂРµРЅРЅРµРј Р±Р»РѕРєРµ РµС‰С‘ РЅРµС‚ x - dupControl РґРѕР»Р¶РµРЅ РІРµСЂРЅСѓС‚СЊ false
             bool dup = Tree::Cur->dupControl(Tree::Cur, "x");
             Assert::IsFalse(dup);
 
-            // Теперь объявляем x во внутреннем блоке (допустимо)
+            // РўРµРїРµСЂСЊ РѕР±СЉСЏРІР»СЏРµРј x РІРѕ РІРЅСѓС‚СЂРµРЅРЅРµРј Р±Р»РѕРєРµ (РґРѕРїСѓСЃС‚РёРјРѕ)
             Tree::Cur->semInclude("x", TYPE_BOOL, 2, 2);
-            // Проверяем, что теперь повторное объявление есть уже во внутреннем блоке
+            // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ С‚РµРїРµСЂСЊ РїРѕРІС‚РѕСЂРЅРѕРµ РѕР±СЉСЏРІР»РµРЅРёРµ РµСЃС‚СЊ СѓР¶Рµ РІРѕ РІРЅСѓС‚СЂРµРЅРЅРµРј Р±Р»РѕРєРµ
             dup = Tree::Cur->dupControl(Tree::Cur, "x");
             Assert::IsTrue(dup);
         }
     };
 
-    // Тесты вычисления выражений (арифметика, сравнения, сдвиги)
+    // РўРµСЃС‚С‹ РІС‹С‡РёСЃР»РµРЅРёСЏ РІС‹СЂР°Р¶РµРЅРёР№ (Р°СЂРёС„РјРµС‚РёРєР°, СЃСЂР°РІРЅРµРЅРёСЏ, СЃРґРІРёРіРё)
     TEST_CLASS(ExpressionTests)
     {
     public:
-        // 12. Арифметическая операция сложения двух целых
+        // 12. РђСЂРёС„РјРµС‚РёС‡РµСЃРєР°СЏ РѕРїРµСЂР°С†РёСЏ СЃР»РѕР¶РµРЅРёСЏ РґРІСѓС… С†РµР»С‹С…
         TEST_METHOD(TestArithmeticAdd)
         {
             SemNode left, right;
-            // Два целых числа: 5 + 3
+            // Р”РІР° С†РµР»С‹С… С‡РёСЃР»Р°: 5 + 3
             left.DataType = TYPE_INT; left.hasValue = true; left.Value.v_int32 = 5;
             right.DataType = TYPE_INT; right.hasValue = true; right.Value.v_int32 = 3;
 
             SemNode result = Tree::executeArithmeticOp(left, right, "+", 1, 1);
 
-            // Должно получиться такое же целое 8
+            // Р”РѕР»Р¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊСЃСЏ С‚Р°РєРѕРµ Р¶Рµ С†РµР»РѕРµ 8
             Assert::IsTrue(result.hasValue);
             Assert::AreEqual(8, result.Value.v_int32); 
             Assert::AreEqual((int)TYPE_INT, (int)result.DataType);
         }
 
-        // 13. Операция сравнения < (результат bool)
+        // 13. РћРїРµСЂР°С†РёСЏ СЃСЂР°РІРЅРµРЅРёСЏ < (СЂРµР·СѓР»СЊС‚Р°С‚ bool)
         TEST_METHOD(TestComparisonLess)
         {
             // 5 < 10
@@ -232,17 +232,17 @@ namespace UnitTests
 
             SemNode result = Tree::executeComparisonOp(left, right, "<", 1, 1);
 
-            // Должно вернуть true
+            // Р”РѕР»Р¶РЅРѕ РІРµСЂРЅСѓС‚СЊ true
             Assert::IsTrue(result.hasValue);
             Assert::IsTrue(result.Value.v_bool);
             Assert::AreEqual((int)TYPE_BOOL, (int)result.DataType);
         }
 
-        // 14. Операция сдвига влево (побитовый сдвиг)
+        // 14. РћРїРµСЂР°С†РёСЏ СЃРґРІРёРіР° РІР»РµРІРѕ (РїРѕР±РёС‚РѕРІС‹Р№ СЃРґРІРёРі)
         TEST_METHOD(TestShiftLeft)
         {
             SemNode left, right;
-            left.DataType = TYPE_INT; left.hasValue = true; left.Value.v_int32 = 4; // двоичное 100
+            left.DataType = TYPE_INT; left.hasValue = true; left.Value.v_int32 = 4; // РґРІРѕРёС‡РЅРѕРµ 100
             right.DataType = TYPE_INT; right.hasValue = true; right.Value.v_int32 = 2;
 
             SemNode result = Tree::executeShiftOp(left, right, "<<", 1, 1);
