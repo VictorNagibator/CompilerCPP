@@ -89,6 +89,8 @@ public:
     static void enterFunctionCall(const string& funcName, int line = -1, int col = -1);
     static void exitFunctionCall();
 
+    static void reset(); // сброс глобального состояния
+
 private:
     void print(int depth);
     std::string makeLabel(const Tree* tree) const;

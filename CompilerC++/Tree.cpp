@@ -849,3 +849,13 @@ void Tree::fixUpPointers(Tree* copy, Tree* parentUp) {
         fixUpPointers(copy->Right, parentUp);
     }
 }
+
+void Tree::reset() {
+    if (Root) delete Root;
+    Root = nullptr;
+    Cur = nullptr;
+    interpretationEnabled = true;
+    debug = false;
+    currentFunction = nullptr;
+    recursionDepth = 0;
+}
