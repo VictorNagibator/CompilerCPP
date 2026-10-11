@@ -16,6 +16,10 @@
 # Mono auto generated files
 mono_crash.*
 
+# CMake build directories
+/build/
+/out/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -361,3 +365,33 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Compiled binaries and libraries
+*.exe
+*.out
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.lib
+
+# CMake build scaffolding (in case of in-source builds)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+
+# Editors and tooling
+.idea/
+.vscode/
+.cache/
+.clangd/
+*.swp
+*.swo
+
+# Visual Studio class diagram files
+*.cd

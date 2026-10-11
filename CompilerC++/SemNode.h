@@ -1,30 +1,32 @@
 ﻿#pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 #include "DataType.h"
 
 using namespace std;
 
+// A single entry of the symbol table (variable, parameter, function or scope).
 struct SemNode {
-    string id; // имя идентификатора 
-    DATA_TYPE DataType; // тип объекта 
+    string id;          // identifier name (empty for scopes)
+    DATA_TYPE DataType; // kind/type of the described object
 
-    bool hasValue = false; // есть ли известное константное значение
+    bool hasValue = false; // whether a constant/runtime value is known
 
     union {
         int16_t v_int16;
         int32_t v_int32;
         int64_t v_int64;
         bool    v_bool;
-    } Value; // само значение
+    } Value; // the value itself
 
-    int Param; // число формальных параметров (для функций) 
-    std::vector<DATA_TYPE> ParamTypes; // список типов формальных параметров (для функций)
-    int line; // строка объявления (для сообщений об ошибках) 
-    int col; // позиция в строке (для сообщений об ошибках) 
+    int Param;                          // number of formal parameters (functions)
+    std::vector<DATA_TYPE> ParamTypes;  // types of formal parameters (functions)
+    int line;                           // declaration line (for diagnostics)
+    int col;                            // declaration column (for diagnostics)
 
-    // Позиции тела функции в исходном тексте (индексы/смещение в буфере Scanner)
-    // Используются при интерпретации: перейти на начало тела и повторно распарсить/выполнить.
+    // Positions of the function body inside the scanner buffer. They are used by
+    // the interpreter to jump to the beginning of a body and execute it again.
     size_t bodyStartPos = 0;
     size_t bodyEndPos = 0;
 

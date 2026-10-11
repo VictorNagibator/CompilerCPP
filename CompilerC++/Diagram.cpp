@@ -1,8 +1,9 @@
 ﻿#include "Diagram.h"
 #include "Tree.h"
 #include <iostream>
+#include <exception>
+#include <stdexcept>
 
-// Конструктор
 Diagram::Diagram(Scanner* scanner) : sc(scanner), curTok(0), curLex(), currentDeclType(TYPE_INT) {
     pushTok.clear();
     pushLex.clear();
@@ -10,22 +11,22 @@ Diagram::Diagram(Scanner* scanner) : sc(scanner), curTok(0), curLex(), currentDe
 
 void Diagram::synError(const string& msg) {
     auto lc = sc->getLineCol();
-    std::cerr << "Синтаксическая ошибка: " << msg;
-    if (!curLex.empty()) std::cerr << " (около '" << curLex << "')";
-    std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
-    throw std::runtime_error("Синтаксическая ошибка");
+    std::cerr << "Syntax error: " << msg;
+    if (!curLex.empty()) std::cerr << " (near '" << curLex << "')";
+    std::cerr << std::endl << "(line " << lc.first << ":" << lc.second << ")" << std::endl;
+    throw std::runtime_error("Syntax error");
 }
 
 void Diagram::lexError() {
     auto lc = sc->getLineCol();
-    std::cerr << "Лексическая ошибка: неизвестная лексема '" << curLex << "'";
-    std::cerr << std::endl << "(строка " << lc.first << ":" << lc.second << ")" << std::endl;
-    throw std::runtime_error("Лексическая ошибка");
+    std::cerr << "Lexical error: unknown token '" << curLex << "'";
+    std::cerr << std::endl << "(line " << lc.first << ":" << lc.second << ")" << std::endl;
+    throw std::runtime_error("Lexical error");
 }
 
 void Diagram::interpError(const string& msg) {
     auto lc = sc->getLineCol();
-	Tree::interpError(msg, curLex, lc.first, lc.second);
+    Tree::interpError(msg, curLex, lc.first, lc.second);
 }
 
 void Diagram::semError(const string& msg) {
@@ -64,14 +65,14 @@ void Diagram::pushBack(int tok, const string& lex) {
     pushLex.push_back(lex);
 }
 
-// Вспомогательные методы для интерпретации
+// Interpreter helpers
 void Diagram::pushValue(const SemNode& node) {
     evalStack.push(node);
 }
 
 SemNode Diagram::popValue() {
     if (evalStack.empty()) {
-        semError("внутренняя ошибка: стек вычислений пуст");
+        semError("internal error: evaluation stack is empty");
     }
     SemNode node = evalStack.top();
     evalStack.pop();
@@ -88,7 +89,6 @@ SemNode Diagram::evaluateConstant(const string& value, DATA_TYPE type) {
             result.Value.v_bool = (value == "true");
         }
         else {
-            // Обрабатываем отрицательные числа напрямую
             string valueToParse = value;
             bool isNegative = false;
 
@@ -98,10 +98,7 @@ SemNode Diagram::evaluateConstant(const string& value, DATA_TYPE type) {
             }
 
             long long val = std::stoll(valueToParse, nullptr, 0);
-
-            if (isNegative) {
-                val = -val;
-            }
+            if (isNegative) val = -val;
 
             if (type == TYPE_SHORT_INT) {
                 result.Value.v_int16 = static_cast<int16_t>(val);
@@ -115,7 +112,7 @@ SemNode Diagram::evaluateConstant(const string& value, DATA_TYPE type) {
         }
     }
     catch (const std::exception& e) {
-        semError("неверный формат константы: " + string(e.what()));
+        semError("invalid constant format: " + string(e.what()));
     }
 
     return result;
@@ -130,40 +127,32 @@ void Diagram::executeAssignment(const string& varName, DATA_TYPE exprType, int l
     bool exprIsInt = (exprType == TYPE_INT || exprType == TYPE_SHORT_INT || exprType == TYPE_LONG_INT);
 
     if (!((varIsInt && exprIsInt) || (varType == TYPE_BOOL && exprType == TYPE_BOOL))) {
-        semError("несоответствие типов при присваивании для '" + varName + "'");
+        semError("type mismatch in assignment to '" + varName + "'");
     }
 
     Tree::setVarValue(varName, value, line, col);
 }
 
-// Точка входа
+// Entry point
 void Diagram::ParseProgram(bool isInterp, bool isDebug) {
     SemNode* rootNode = new SemNode();
-    rootNode->id = "<глобальная область видимости>";
+    rootNode->id = "<global scope>";
     rootNode->DataType = TYPE_SCOPE;
     rootNode->line = 0;
     rootNode->col = 0;
     Tree* rootTree = new Tree(rootNode, nullptr);
     Tree::setCur(rootTree);
 
-    if (isInterp) {
-        Tree::enableInterpretation();
-    }
-    else {
-        Tree::disableInterpretation();
-    }
+    if (isInterp) Tree::enableInterpretation();
+    else          Tree::disableInterpretation();
 
-    if (isDebug) {
-        Tree::enableDebug();
-    }
-    else {
-        Tree::disableDebug();
-	}
+    if (isDebug) Tree::enableDebug();
+    else         Tree::disableDebug();
 
     Program();
 
     int t = nextToken();
-    if (t != T_END) synError("лишний текст в конце программы");
+    if (t != T_END) synError("unexpected text after the end of the program");
 
     if (!isInterp) {
         rootTree->print();
@@ -193,10 +182,10 @@ void Diagram::TopDecl() {
 // Function -> 'void' IDENT '(' ParamListOpt ')' Block
 void Diagram::Function() {
     int t = nextToken();
-    if (t != KW_VOID) synError("ожидался 'void' в определении функции");
+    if (t != KW_VOID) synError("expected 'void' in a function definition");
 
     t = nextToken();
-    if (t != IDENT && t != KW_MAIN) synError("ожидалось имя функции (IDENT)");
+    if (t != IDENT && t != KW_MAIN) synError("expected a function name (identifier)");
     string funcName = curLex;
     auto pos = sc->getLineCol();
 
@@ -211,7 +200,7 @@ void Diagram::Function() {
     }
 
     t = nextToken();
-    if (t != LPAREN) synError("ожидался '(' после имени функции");
+    if (t != LPAREN) synError("expected '(' after the function name");
 
     std::vector<DATA_TYPE> paramTypes;
     int paramCount = 0;
@@ -220,7 +209,7 @@ void Diagram::Function() {
         for (;;) {
             t = nextToken();
             if (!(t == KW_INT || t == KW_SHORT || t == KW_LONG || t == KW_BOOL))
-                synError("ожидался тип параметра");
+                synError("expected a parameter type");
 
             DATA_TYPE ptype = TYPE_INT;
             if (t == KW_SHORT) ptype = TYPE_SHORT_INT;
@@ -228,13 +217,13 @@ void Diagram::Function() {
             else if (t == KW_BOOL) ptype = TYPE_BOOL;
 
             t = nextToken();
-            if (t != IDENT) synError("ожидалось имя параметра");
+            if (t != IDENT) synError("expected a parameter name");
             string paramName = curLex;
             auto ppos = sc->getLineCol();
 
             Tree* paramNode = Tree::Cur->semInclude(paramName, ptype, ppos.first, ppos.second);
             if (paramNode && paramNode->n) {
-                paramNode->n->hasValue = true; // Помечаем параметр как инициализированный
+                paramNode->n->hasValue = true; // parameters are considered initialized
             }
             paramTypes.push_back(ptype);
             paramCount++;
@@ -251,17 +240,17 @@ void Diagram::Function() {
     }
 
     t = nextToken();
-    if (t != RPAREN) synError("ожидался ')' после списка параметров");
+    if (t != RPAREN) synError("expected ')' after the parameter list");
 
     funcNode->semSetParam(funcNode, paramCount);
     funcNode->semSetParamTypes(funcNode, paramTypes);
 
-    // Устанавливаем текущую функцию
     Tree::setCurrentFunction(funcNode);
 
-    // Управление флагом интерпретации: выключаем для всех функций кроме main
+    // Only `main` (without parameters) is executed while being parsed.
     bool wasInterpretationEnabled = Tree::isInterpretationEnabled();
-    if (funcName != "main" || paramCount != 0) {
+    bool isEntryPoint = (funcName == "main" && paramCount == 0);
+    if (!isEntryPoint) {
         Tree::disableInterpretation();
     }
 
@@ -269,34 +258,27 @@ void Diagram::Function() {
         funcNode->n->bodyStartPos = sc->getPos();
     }
 
-    // Тело функции
     Block();
 
     if (funcNode && funcNode->n) {
         funcNode->n->bodyEndPos = sc->getPos();
     }
 
-    // Сбрасываем текущую функцию
     Tree::setCurrentFunction(nullptr);
 
-    // Восстанавливаем предыдущее состояние флага интерпретации
-    if (funcName != "main" || paramCount != 0) {
-        if (wasInterpretationEnabled) {
-            Tree::enableInterpretation();
-        }
-        else {
-            Tree::disableInterpretation();
-        }
+    if (!isEntryPoint) {
+        if (wasInterpretationEnabled) Tree::enableInterpretation();
+        else                          Tree::disableInterpretation();
     }
 
     Tree::setCur(savedCur);
 }
 
-// VarDecl -> Type IdInitList ;
+// VarDecl -> Type IdInitList ';'
 void Diagram::VarDecl() {
     int t = nextToken();
     if (!(t == KW_INT || t == KW_SHORT || t == KW_LONG || t == KW_BOOL))
-        synError("ожидался тип в объявлении переменных");
+        synError("expected a type in a variable declaration");
 
     if (t == KW_SHORT) currentDeclType = TYPE_SHORT_INT;
     else if (t == KW_LONG) currentDeclType = TYPE_LONG_INT;
@@ -306,7 +288,7 @@ void Diagram::VarDecl() {
     IdInitList();
 
     t = nextToken();
-    if (t != SEMI) synError("ожидался ';' в конце объявления переменных");
+    if (t != SEMI) synError("expected ';' at the end of a variable declaration");
 }
 
 // IdInitList -> IdInit (',' IdInit)*
@@ -320,10 +302,10 @@ void Diagram::IdInitList() {
     }
 }
 
-// IdInit -> IDENT [ = Expr ]
+// IdInit -> IDENT ['=' Expr]
 void Diagram::IdInit() {
     int t = nextToken();
-    if (t != IDENT) synError("ожидался идентификатор в списке объявлений");
+    if (t != IDENT) synError("expected an identifier in the declaration list");
     string varName = curLex;
     auto pos = sc->getLineCol();
 
@@ -341,7 +323,7 @@ void Diagram::IdInit() {
         bool exprIsInt = (exprType == TYPE_INT || exprType == TYPE_SHORT_INT || exprType == TYPE_LONG_INT);
 
         if (!((varIsInt && exprIsInt) || (varType == TYPE_BOOL && exprType == TYPE_BOOL))) {
-            semError("несоответствие типов при инициализации переменной '" + varName + "'");
+            semError("type mismatch in the initializer of variable '" + varName + "'");
         }
 
         Tree::setVarValue(varName, value, pos.first, pos.second);
@@ -351,27 +333,24 @@ void Diagram::IdInit() {
 // Block -> '{' BlockItems '}'
 void Diagram::Block() {
     int t = nextToken();
-    if (t != LBRACE) synError("ожидался '{' для начала блока");
+    if (t != LBRACE) synError("expected '{' to open a block");
 
-    // позиция сразу после '{' — начало тела блока
     size_t posAfterLBrace = sc->getPos();
 
     auto lc = sc->getLineCol();
     Tree::Cur->semEnterBlock(lc.first, lc.second);
 
-    // Если мы парсим тело функции (currentFunction установлен), сохраняем начало тела корректно
+    // Record the body start of the enclosing function only once.
     Tree* curFunc = Tree::getCurrentFunction();
     if (curFunc && curFunc->n) {
-        // записываем только если ранее не записано
         if (curFunc->n->bodyStartPos == 0) curFunc->n->bodyStartPos = posAfterLBrace;
     }
 
     BlockItems();
 
     t = nextToken();
-    if (t != RBRACE) synError("ожидался '}' для конца блока");
+    if (t != RBRACE) synError("expected '}' to close a block");
 
-    // корректная позиция конца тела (после '}')
     if (curFunc && curFunc->n) {
         curFunc->n->bodyEndPos = sc->getPos();
     }
@@ -379,7 +358,7 @@ void Diagram::Block() {
     Tree::Cur->semExitBlock();
 }
 
-// BlockItems -> ( VarDecl | Stmt )* 
+// BlockItems -> ( VarDecl | Stmt )*
 void Diagram::BlockItems() {
     int t = peekToken();
     while (t != RBRACE && t != T_END) {
@@ -393,12 +372,12 @@ void Diagram::BlockItems() {
     }
 }
 
-// Stmt -> ';' | Block | Assign | SwitchStmt | CallStmt
+// Stmt -> ';' | Block | Assign ';' | SwitchStmt | CallStmt
 void Diagram::Stmt() {
     int t = peekToken();
 
     if (t == SEMI) {
-        nextToken(); // пустой оператор
+        nextToken(); // empty statement
         return;
     }
 
@@ -422,7 +401,7 @@ void Diagram::Stmt() {
         if (t2 == ASSIGN) {
             Assign();
             t = nextToken();
-            if (t != SEMI) synError("ожидался ';' после оператора присваивания");
+            if (t != SEMI) synError("expected ';' after an assignment");
             return;
         }
         else if (t2 == LPAREN) {
@@ -430,35 +409,35 @@ void Diagram::Stmt() {
             return;
         }
         else {
-            synError("ожидалось '=' (присваивание) или '(' (вызов функции) после идентификатора");
+            synError("expected '=' (assignment) or '(' (function call) after an identifier");
         }
     }
 
-    synError("неизвестная форма оператора");
+    synError("unknown statement form");
 }
 
-// CallStmt -> Call ;
+// CallStmt -> Call ';'
 void Diagram::CallStmt() {
     Call();
 
     int t = nextToken();
-    if (t != SEMI) synError("ожидался ';' после вызова функции");
+    if (t != SEMI) synError("expected ';' after a function call");
 }
 
-// Assign -> IDENT = Expr
+// Assign -> IDENT '=' Expr
 void Diagram::Assign() {
     int t = nextToken();
-    if (t != IDENT) synError("ожидался идентификатор в присваивании");
+    if (t != IDENT) synError("expected an identifier in an assignment");
     string name = curLex;
     auto lc = sc->getLineCol();
 
     Tree* leftNode = Tree::Cur->semGetVar(name, lc.first, lc.second);
     if (leftNode->n->DataType == TYPE_FUNCT) {
-        semError("нельзя присваивать функции '" + name + "'");
+        semError("cannot assign to function '" + name + "'");
     }
 
     t = nextToken();
-    if (t != ASSIGN) synError("ожидался знак '=' в присваивании");
+    if (t != ASSIGN) synError("expected '=' in an assignment");
 
     DATA_TYPE rtype = Expr();
     DATA_TYPE ltype = leftNode->n->DataType;
@@ -467,88 +446,64 @@ void Diagram::Assign() {
     bool rIsInt = (rtype == TYPE_INT || rtype == TYPE_SHORT_INT || rtype == TYPE_LONG_INT);
 
     if (!((lIsInt && rIsInt) || (ltype == TYPE_BOOL && rtype == TYPE_BOOL))) {
-        semError("несоответствие типов при присваивании для '" + name + "'");
+        semError("type mismatch in assignment to '" + name + "'");
     }
 
-    // Выполняем присваивание
     executeAssignment(name, rtype, lc.first, lc.second);
 }
 
 // SwitchStmt -> 'switch' '(' Expr ')' '{' CaseStmt* DefaultStmt? '}'
+// Cases fall through to the next clause until a 'break' is reached, matching C.
 void Diagram::SwitchStmt() {
     int t = nextToken();
-    if (t != KW_SWITCH) synError("ожидался 'switch'");
+    if (t != KW_SWITCH) synError("expected 'switch'");
 
     t = nextToken();
-    if (t != LPAREN) synError("ожидался '(' после 'switch'");
+    if (t != LPAREN) synError("expected '(' after 'switch'");
 
     DATA_TYPE stype = Expr();
     if (!(stype == TYPE_INT || stype == TYPE_SHORT_INT || stype == TYPE_LONG_INT)) {
-        semError("тип выражения в switch должен быть целым (int/short/long)");
+        semError("the switch expression must have an integer type (int/short/long)");
     }
 
     SemNode sVal = popValue();
-    if (!sVal.hasValue) interpError("выражение switch неинициализировано");
+    if (!sVal.hasValue) interpError("switch expression is uninitialized");
     long long switchVal = 0;
     if (sVal.DataType == TYPE_SHORT_INT) switchVal = sVal.Value.v_int16;
     else if (sVal.DataType == TYPE_INT) switchVal = sVal.Value.v_int32;
     else if (sVal.DataType == TYPE_LONG_INT) switchVal = sVal.Value.v_int64;
 
     t = nextToken();
-    if (t != RPAREN) synError("ожидался ')' после выражения switch");
+    if (t != RPAREN) synError("expected ')' after the switch expression");
 
     t = nextToken();
-    if (t != LBRACE) synError("ожидался '{' для тела switch");
+    if (t != LBRACE) synError("expected '{' to open the switch body");
 
-    bool anyMatched = false;
-    bool endSwitch = false;
+    bool executing = false;   // statements are currently being executed
+    bool switchEnded = false; // a break has terminated the switch
 
-    // Обрабатываем ВСЕ case-ветви, не прерываем цикл на первом break,
-    // но если endSwitch==true — разбираем дальнейшие ветви только семантически (не исполняем).
     int pk = peekToken();
     while (pk == KW_CASE) {
-        if (!endSwitch) {
-            // CaseStmt возвращает true, если в выполнявшейся ветке встретился break
-            if (CaseStmt(switchVal, anyMatched)) {
-                endSwitch = true;
-            }
-        }
-        else {
-            // уже было break — дальше только семантика: временно выключаем интерпретацию
-            bool saveInterp = Tree::isInterpretationEnabled();
-            if (saveInterp) Tree::disableInterpretation();
-            CaseStmt(switchVal, anyMatched);
-            if (saveInterp) Tree::enableInterpretation();
-        }
+        CaseStmt(switchVal, executing, switchEnded);
         pk = peekToken();
     }
 
-    if (peekToken() == KW_DEFAULT) {
-        if (!endSwitch) {
-            if (DefaultStmt(anyMatched)) {
-                endSwitch = true;
-            }
-        }
-        else {
-            bool saveInterp = Tree::isInterpretationEnabled();
-            if (saveInterp) Tree::disableInterpretation();
-            DefaultStmt(anyMatched);
-            if (saveInterp) Tree::enableInterpretation();
-        }
+    if (pk == KW_DEFAULT) {
+        DefaultStmt(executing, switchEnded);
     }
 
     t = nextToken();
-    if (t != RBRACE) synError("ожидался '}' в конце switch");
+    if (t != RBRACE) synError("expected '}' to close the switch body");
 }
 
 // CaseStmt -> 'case' Const ':' Stmt*
-bool Diagram::CaseStmt(long long switchVal, bool& anyMatched) {
+void Diagram::CaseStmt(long long switchVal, bool& executing, bool& switchEnded) {
     int t = nextToken();
-    if (t != KW_CASE) synError("ожидался 'case'");
+    if (t != KW_CASE) synError("expected 'case'");
 
     t = nextToken();
     if (!(t == DEC_CONST || t == HEX_CONST)) {
-        semError("case принимает только числовую константу");
+        semError("a case label must be a numeric constant");
     }
 
     long long caseVal = 0;
@@ -556,131 +511,108 @@ bool Diagram::CaseStmt(long long switchVal, bool& anyMatched) {
         caseVal = std::stoll(curLex, nullptr, 0);
     }
     catch (...) {
-        semError("неверная константа в case");
+        semError("invalid constant in a case label");
     }
 
     t = nextToken();
-    if (t != COLON) synError("ожидался ':' после case-значения");
+    if (t != COLON) synError("expected ':' after a case label");
 
-    bool matched = (!anyMatched && caseVal == switchVal);
-    if (matched) anyMatched = true;
-
-    bool branchBroken = false; // встретили break в этой ветке (выполняемой или нет)
+    if (!executing && !switchEnded && caseVal == switchVal) {
+        executing = true;
+    }
 
     for (;;) {
         int p = peekToken();
         if (p == KW_CASE || p == KW_DEFAULT || p == RBRACE || p == T_END) break;
 
         if (p == KW_BREAK) {
-            nextToken(); // съели KW_BREAK
+            nextToken(); // break
             int semi = nextToken();
-            if (semi != SEMI) synError("ожидался ';' после break");
-
-            // независимо от matched — нужно продолжить синтаксический разбор
-            // но пометить, что break был (если matched==true — это остановит исполнение внешнего switch)
-            branchBroken = true;
-            // после break все оставшиеся операторы в этой ветке недостижимы,
-            // поэтому мы будем разбирать их только семантически (не исполняя)
+            if (semi != SEMI) synError("expected ';' after 'break'");
+            if (executing && !switchEnded) switchEnded = true;
             continue;
         }
 
-        // Обычный разбор оператора: исполнение только если matched и ещё не было break
-        if (Tree::isInterpretationEnabled()) {
-            if (matched && !branchBroken) {
-                Stmt(); // выполняем
-            }
-            else {
-                bool save = Tree::isInterpretationEnabled();
-                if (save) Tree::disableInterpretation();
-                Stmt(); // только семантика
-                if (save) Tree::enableInterpretation();
-            }
+        if (Tree::isInterpretationEnabled() && executing && !switchEnded) {
+            Stmt();
         }
         else {
-            Stmt(); // интерпретация выключена — только семантика
+            bool saved = Tree::isInterpretationEnabled();
+            if (saved) Tree::disableInterpretation();
+            Stmt();
+            if (saved) Tree::enableInterpretation();
         }
     }
-
-    // вернём true только если совпавшая ветка включала break (тогда внешний Switch прекратит исполнение)
-    return (matched && branchBroken);
 }
 
 // DefaultStmt -> 'default' ':' Stmt*
-bool Diagram::DefaultStmt(bool anyMatched) {
+void Diagram::DefaultStmt(bool& executing, bool& switchEnded) {
     int t = nextToken();
-    if (t != KW_DEFAULT) synError("ожидался 'default'");
+    if (t != KW_DEFAULT) synError("expected 'default'");
 
     t = nextToken();
-    if (t != COLON) synError("ожидался ':' после default");
+    if (t != COLON) synError("expected ':' after 'default'");
 
-    bool matched = !anyMatched;
+    if (!executing && !switchEnded) {
+        executing = true;
+    }
 
-    while (true) {
+    for (;;) {
         int p = peekToken();
         if (p == KW_CASE || p == RBRACE || p == T_END) break;
 
         if (p == KW_BREAK) {
             nextToken();
             int semi = nextToken();
-            if (semi != SEMI) synError("ожидался ';' после break");
-            return matched;
+            if (semi != SEMI) synError("expected ';' after 'break'");
+            if (executing && !switchEnded) switchEnded = true;
+            continue;
+        }
+
+        if (Tree::isInterpretationEnabled() && executing && !switchEnded) {
+            Stmt();
         }
         else {
-            if (Tree::isInterpretationEnabled()) {
-                if (matched) Stmt();
-                else {
-                    bool saveInterp = Tree::isInterpretationEnabled();
-                    if (saveInterp) Tree::disableInterpretation();
-                    Stmt();
-                    if (saveInterp) Tree::enableInterpretation();
-                }
-            }
-            else {
-                Stmt();
-            }
+            bool saved = Tree::isInterpretationEnabled();
+            if (saved) Tree::disableInterpretation();
+            Stmt();
+            if (saved) Tree::enableInterpretation();
         }
     }
-
-    return false;
 }
 
 // Call -> IDENT '(' ArgListOpt ')'
 void Diagram::Call() {
     int t = nextToken();
-    if (t != IDENT) synError("ожидалось имя функции при вызове");
+    if (t != IDENT) synError("expected a function name in a call");
     string fname = curLex;
     auto lc = sc->getLineCol();
 
     Tree* fnode = Tree::Cur->semGetFunct(fname, lc.first, lc.second);
 
     t = nextToken();
-    if (t != LPAREN) synError("ожидался '(' после имени функции");
+    if (t != LPAREN) synError("expected '(' after the function name");
 
     std::vector<SemNode> args;
     ArgListOpt(args);
 
     t = nextToken();
-    if (t != RPAREN) synError("ожидался ')' после списка аргументов");
+    if (t != RPAREN) synError("expected ')' after the argument list");
 
-    // Семантическая проверка типов параметров
     std::vector<DATA_TYPE> argTypes;
     for (const auto& arg : args) argTypes.push_back(arg.DataType);
     fnode->semControlParamTypes(fnode, argTypes, lc.first, lc.second);
 
-    // Лог вызова
     Tree::printFunctionCall(fname, args, lc.first, lc.second);
 
-    // Если интерпретация выключена — не выполняем
     if (!Tree::isInterpretationEnabled()) return;
 
-    // Проверка ограничения рекурсии (входим в вызов)
     Tree::enterFunctionCall(fname, lc.first, lc.second);
 
-    // Получаем область функции (scope) — оригинальную (распарсенную при компиляции)
     Tree* funcScope = fnode->Left;
-    if (!funcScope) interpError("отсутствует тело функции при вызове '" + fname + "'");
+    if (!funcScope) interpError("function body is missing in call to '" + fname + "'");
 
-    // Сохраняем состояние парсера / контекста
+    // Save the parser state.
     size_t savedPos = sc->getPos();
     auto savedPushTok = pushTok;
     auto savedPushLex = pushLex;
@@ -689,59 +621,58 @@ void Diagram::Call() {
     Tree* savedCurTree = Tree::getCur();
     Tree* savedCurrentFunction = Tree::getCurrentFunction();
 
-    // ------- Создаём временную пустую область для выполнения (без копирования тела) -------
+    // Create a fresh scope for the call, linked to the function.
     SemNode* tmpScopeNode = new SemNode();
     tmpScopeNode->id = ""; tmpScopeNode->DataType = TYPE_SCOPE;
     tmpScopeNode->Param = 0; tmpScopeNode->line = lc.first; tmpScopeNode->col = lc.second;
-    // Up у временной области должен указывать на оригинальную функцию
     Tree* tmpScope = new Tree(tmpScopeNode, fnode);
 
-    // Скопируем ПАРАМЕТРЫ (если они есть) — только их описания и присвоим им значения из args
-    Tree* origP = funcScope->Left; // параметры в оригинальном scope
+    // Copy the parameter descriptors (names/types) into the temporary scope.
+    Tree* origP = funcScope->Left;
     for (size_t i = 0; origP && i < args.size(); origP = origP->Right, ++i) {
         if (!origP->n) continue;
-        SemNode* pcopy = new SemNode(*origP->n); // копируем id и тип (но не значение)
+        SemNode* pcopy = new SemNode(*origP->n);
         pcopy->hasValue = false;
         pcopy->line = origP->n->line;
         pcopy->col = origP->n->col;
-        // вставляем параметр в tmpScope как левый ребёнок списка (setLeft добавит как Right-соседа)
         tmpScope->setLeft(pcopy);
     }
 
-    // Установим значения параметров согласно args (по порядку)
+    // Bind the actual argument values to the copied parameters.
     Tree* copyP = tmpScope->Left;
     for (size_t i = 0; copyP && i < args.size(); copyP = copyP->Right, ++i) {
         if (!copyP->n) continue;
 
-        // Приводим аргумент к типу формального параметра
         SemNode converted = Tree::castToType(args[i], copyP->n->DataType, lc.first, lc.second);
 
-        // Сохраняем значение и помечаем как инициализированное
         copyP->n->hasValue = converted.hasValue;
         copyP->n->Value = converted.Value;
 
-        // Печатаем предупреждение о неявном преобразовании при debug (как в setVarValue)
         if (args[i].DataType != copyP->n->DataType && Tree::isDebugEnabled()) {
             Tree::printTypeConversionWarning(args[i].DataType, copyP->n->DataType,
-                "передаче параметра", copyP->n->id + " в " + fname + "()", lc.first, lc.second);
+                "parameter passing", copyP->n->id + " in " + fname + "()", lc.first, lc.second);
         }
     }
 
-    // ------- Переключаемся на временную область и выполняем тело --------
+    // Execute the body in the temporary scope. Collect any exception so that
+    // the parser state is always restored and the temporary scope is freed.
     Tree::setCur(tmpScope);
     Tree::setCurrentFunction(fnode);
 
-    // Устанавливаем сканер на начало тела функции (bodyStartPos был сохранён при парсинге)
     size_t bodyStart = (fnode->n) ? fnode->n->bodyStartPos : 0;
     sc->setPos(bodyStart);
 
-    // Выполняем блок тела функции (он распарсится заново, но уже в контексте tmpScope)
-    Block();
+    std::exception_ptr error;
+    try {
+        Block();
+    }
+    catch (...) {
+        error = std::current_exception();
+    }
 
-    // С выходом из тела функции — уменьшаем счётчик рекурсии
     Tree::exitFunctionCall();
 
-    // Восстановка контекста
+    // Restore the parser state.
     sc->setPos(savedPos);
     pushTok = savedPushTok;
     pushLex = savedPushLex;
@@ -750,88 +681,35 @@ void Diagram::Call() {
     Tree::setCur(savedCurTree);
     Tree::setCurrentFunction(savedCurrentFunction);
 
-    // Удаляем временную область (оно рекурсивно удалит параметры и всё, что было создано при выполнении)
     delete tmpScope;
+
+    if (error) {
+        std::rethrow_exception(error);
+    }
 }
 
 // ArgListOpt -> [Expr (',' Expr)*]
 void Diagram::ArgListOpt(std::vector<SemNode>& args) {
     int t = peekToken();
     if (t != RPAREN) {
-        DATA_TYPE atype = Expr();
-        SemNode arg = popValue();
-        args.push_back(arg);
+        Expr();
+        args.push_back(popValue());
 
         t = peekToken();
         while (t == COMMA) {
             nextToken();
-            atype = Expr();
-            arg = popValue();
-            args.push_back(arg);
+            Expr();
+            args.push_back(popValue());
             t = peekToken();
         }
     }
 }
 
-// Expr -> ['+'|'-'] Rel ( ('==' | '!=') Rel )*
+// Expr -> Rel ( ('==' | '!=') Rel )*
 DATA_TYPE Diagram::Expr() {
-    int t = peekToken();
-    bool hasUnary = false;
-    string unaryOp = "";
-
-    // Пропускаем унарные операции для констант - они обрабатываются в Prim()
-    // Оставляем только для случаев, когда это не константа
-    if (t == PLUS || t == MINUS) {
-        // Смотрим вперед, чтобы определить, константа ли это
-        int savedTok = nextToken();
-        string savedLex = curLex;
-        int nextTok = peekToken();
-
-        // Если следующий токен - константа, то унарную операцию обработает Prim()
-        if (nextTok == DEC_CONST || nextTok == HEX_CONST) {
-            pushBack(savedTok, savedLex);
-        }
-        else {
-            // Если не константа, то обрабатываем как унарную операцию
-            hasUnary = true;
-            unaryOp = (savedTok == PLUS) ? "+" : "-";
-        }
-    }
-
     DATA_TYPE left = Rel();
 
-    // Обработка унарной операции (только для не-констант)
-    if (hasUnary) {
-        if (!(left == TYPE_INT || left == TYPE_SHORT_INT || left == TYPE_LONG_INT)) {
-            semError("унарный '+'/'-' применим только к целым типам");
-        }
-
-        SemNode operand = popValue();
-        SemNode result;
-
-        if (unaryOp == "-") {
-            SemNode minusOne;
-            minusOne.DataType = left;
-            minusOne.hasValue = true;
-
-            switch (left) {
-            case TYPE_SHORT_INT: minusOne.Value.v_int16 = -1; break;
-            case TYPE_INT: minusOne.Value.v_int32 = -1; break;
-            case TYPE_LONG_INT: minusOne.Value.v_int64 = -1; break;
-            default: break;
-            }
-
-            result = Tree::executeArithmeticOp(operand, minusOne, "*", sc->getLineCol().first, sc->getLineCol().second);
-        }
-        else {
-            result = operand;
-        }
-
-        pushValue(result);
-        left = result.DataType;
-    }
-
-    t = peekToken();
+    int t = peekToken();
     while (t == EQ || t == NEQ) {
         string op = (t == EQ) ? "==" : "!=";
         nextToken();
@@ -849,7 +727,7 @@ DATA_TYPE Diagram::Expr() {
             left = TYPE_BOOL;
         }
         else {
-            semError("операнды для '=='/'!=' должны быть одного типа");
+            semError("operands of '=='/'!=' must have the same type");
         }
 
         t = peekToken();
@@ -881,7 +759,7 @@ DATA_TYPE Diagram::Rel() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '<, <=, >, >=' должны быть целыми (int/short/long)");
+            semError("operands of '<', '<=', '>', '>=' must be integers (int/short/long)");
         }
 
         SemNode result = Tree::executeComparisonOp(leftVal, rightVal, op, sc->getLineCol().first, sc->getLineCol().second);
@@ -909,7 +787,7 @@ DATA_TYPE Diagram::Shift() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для сдвигов должны быть целыми (int/short/long)");
+            semError("operands of shifts must be integers (int/short/long)");
         }
 
         SemNode result = Tree::executeShiftOp(leftVal, rightVal, op, sc->getLineCol().first, sc->getLineCol().second);
@@ -937,7 +815,7 @@ DATA_TYPE Diagram::Add() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '+'/'-' должны быть целыми (int/short/long)");
+            semError("operands of '+'/'-' must be integers (int/short/long)");
         }
 
         SemNode result = Tree::executeArithmeticOp(leftVal, rightVal, op, sc->getLineCol().first, sc->getLineCol().second);
@@ -970,7 +848,7 @@ DATA_TYPE Diagram::Mul() {
         bool rInt = (right == TYPE_INT || right == TYPE_SHORT_INT || right == TYPE_LONG_INT);
 
         if (!(lInt && rInt)) {
-            semError("операнды для '*', '/', '%' должны быть целыми (int/short/long)");
+            semError("operands of '*', '/', '%' must be integers (int/short/long)");
         }
 
         SemNode result = Tree::executeArithmeticOp(leftVal, rightVal, op, sc->getLineCol().first, sc->getLineCol().second);
@@ -981,76 +859,72 @@ DATA_TYPE Diagram::Mul() {
     return left;
 }
 
-// Prim -> IDENT | Const | '(' Expr ')'
+// Prim -> ['+'|'-'] ( IDENT | Const | '(' Expr ')' )
 DATA_TYPE Diagram::Prim() {
     int t = nextToken();
 
-    // Сначала проверяем унарный минус для отрицательных констант
-    if (t == MINUS) {
-        t = nextToken();
-        if (t == DEC_CONST || t == HEX_CONST) {
-            DATA_TYPE constType = TYPE_SHORT_INT;
+    // Unary plus/minus
+    if (t == PLUS || t == MINUS) {
+        bool negative = (t == MINUS);
+        int t2 = peekToken();
 
-            // Определяем, нужно ли автоматически повышать тип до long
-            string valueStr = "-" + curLex;
+        if (t2 == DEC_CONST || t2 == HEX_CONST) {
+            // Negative/positive literal: fold the sign into the constant and
+            // promote the type to the smallest type that can hold the value.
+            nextToken(); // consume the constant
+            string valueStr = curLex;
+
+            DATA_TYPE constType = TYPE_SHORT_INT;
             try {
                 long long val = std::stoll(valueStr, nullptr, 0);
-
-                // Если значение выходит за пределы short, автоматически делаем его int
-                if (val > 32767 || val < -32768) {
-                    constType = TYPE_INT;
-                }
-
-                // Если значение выходит за пределы int, автоматически делаем его long
-                if (val > 2147483647LL || val < -2147483648LL) {
-                    constType = TYPE_LONG_INT;
-                }
+                if (val > 32767 || val < -32768) constType = TYPE_INT;
+                if (val > 2147483647LL || val < -2147483648LL) constType = TYPE_LONG_INT;
             }
             catch (...) {
-                // Оставляем как TYPE_INT в случае ошибки
+                constType = TYPE_INT;
             }
 
-            SemNode constNode = evaluateConstant("-" + curLex, constType);
+            string signedValue = negative ? ("-" + valueStr) : valueStr;
+            SemNode constNode = evaluateConstant(signedValue, constType);
             pushValue(constNode);
             return constType;
         }
-        else {
-            // Если после минуса не константа, то это унарная операция над выражением
-            // Помещаем токен обратно и обрабатываем как обычное выражение в скобках
-            pushBack(t, curLex);
-            pushBack(MINUS, "-");
-            // Обрабатываем как выражение в скобках
-            t = nextToken();
-            if (t != LPAREN) {
-                synError("ожидалась константа или выражение в скобках после '-'");
-            }
-            DATA_TYPE dt = Expr();
-            t = nextToken();
-            if (t != RPAREN) synError("ожидался ')' после выражения");
-            return dt;
+
+        DATA_TYPE operandType = Prim();
+        if (!(operandType == TYPE_INT || operandType == TYPE_SHORT_INT || operandType == TYPE_LONG_INT)) {
+            semError("unary '+'/'-' can only be applied to integer types");
         }
+
+        if (!negative) {
+            return operandType; // unary plus does not change the value
+        }
+
+        SemNode operand = popValue();
+        SemNode minusOne;
+        minusOne.DataType = operandType;
+        minusOne.hasValue = true;
+        switch (operandType) {
+        case TYPE_SHORT_INT: minusOne.Value.v_int16 = -1; break;
+        case TYPE_INT:       minusOne.Value.v_int32 = -1; break;
+        case TYPE_LONG_INT:  minusOne.Value.v_int64 = -1; break;
+        default: break;
+        }
+
+        SemNode result = Tree::executeArithmeticOp(operand, minusOne, "*",
+            sc->getLineCol().first, sc->getLineCol().second);
+        pushValue(result);
+        return result.DataType;
     }
 
     if (t == DEC_CONST || t == HEX_CONST) {
         DATA_TYPE constType = TYPE_SHORT_INT;
-
-        // Определяем, нужно ли автоматически повышать тип до long
-        string valueStr = curLex;
         try {
-            long long val = std::stoll(valueStr, nullptr, 0);
-
-            // Если значение выходит за пределы short, автоматически делаем его int
-            if (val > 32767 || val < -32768) {
-                constType = TYPE_INT;
-            }
-
-            // Если значение выходит за пределы int, автоматически делаем его long
-            if (val > 2147483647LL || val < -2147483648LL) {
-                constType = TYPE_LONG_INT;
-            }
+            long long val = std::stoll(curLex, nullptr, 0);
+            if (val > 32767 || val < -32768) constType = TYPE_INT;
+            if (val > 2147483647LL || val < -2147483648LL) constType = TYPE_LONG_INT;
         }
         catch (...) {
-            // Оставляем как TYPE_INT в случае ошибки
+            constType = TYPE_INT;
         }
 
         SemNode constNode = evaluateConstant(curLex, constType);
@@ -1059,19 +933,18 @@ DATA_TYPE Diagram::Prim() {
     }
 
     if (t == KW_TRUE || t == KW_FALSE) {
-        DATA_TYPE boolType = TYPE_BOOL;
         SemNode boolNode;
         boolNode.DataType = TYPE_BOOL;
         boolNode.hasValue = true;
         boolNode.Value.v_bool = (t == KW_TRUE);
         pushValue(boolNode);
-        return boolType;
+        return TYPE_BOOL;
     }
 
     if (t == LPAREN) {
         DATA_TYPE dt = Expr();
         t = nextToken();
-        if (t != RPAREN) synError("ожидался ')' после выражения");
+        if (t != RPAREN) synError("expected ')' after the expression");
         return dt;
     }
 
@@ -1080,14 +953,14 @@ DATA_TYPE Diagram::Prim() {
         int t2 = peekToken();
 
         if (t2 == LPAREN) {
-            semError("вызов функции внутри выражения невозможен: функции возвращают void");
+            semError("a function call cannot be used inside an expression: functions return void");
         }
         else {
             auto lc = sc->getLineCol();
             Tree* v = Tree::Cur->semGetVar(name, lc.first, lc.second);
 
             if (!v->n->hasValue) {
-                interpError("использование неинициализированной переменной '" + name + "'");
+                interpError("use of uninitialized variable '" + name + "'");
             }
 
             SemNode value;
@@ -1100,19 +973,6 @@ DATA_TYPE Diagram::Prim() {
         }
     }
 
-    synError("ожидалось первичное выражение (IDENT, константа или скобки)");
+    synError("expected a primary expression (identifier, constant or parenthesized expression)");
     return TYPE_INT;
-}
-
-// Const -> DEC_CONST | HEX_CONST | true | false
-void Diagram::Const() {
-    int t = nextToken();
-    if (!(t == DEC_CONST || t == HEX_CONST || t == KW_TRUE || t == KW_FALSE))
-        synError("ожидалась константа");
-}
-
-// Name -> IDENT
-void Diagram::Name() {
-    int t = nextToken();
-    if (t != IDENT) synError("ожидался идентификатор (имя)");
 }

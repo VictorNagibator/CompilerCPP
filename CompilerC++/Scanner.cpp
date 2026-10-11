@@ -1,12 +1,13 @@
-﻿#include "scanner.h"
-#include "defines.h"
+﻿#include "Scanner.h"
+#include "Defines.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
-#define MAX_CONST_LEN 20 // максимальная длина численной константы
+// Maximum length of a numeric literal and of an identifier.
+#define MAX_CONST_LEN 20
+#define MAX_IDENT_LEN 20
 
-// В конструкторе текущая позиция = 0, текст пуст
 Scanner::Scanner() : text(), currentPos(0) {}
 
 bool Scanner::loadFile(const string& fileName) {
@@ -17,27 +18,28 @@ bool Scanner::loadFile(const string& fileName) {
     ss << in.rdbuf();
     text = ss.str();
 
-    // Добавляем нулевой символ в конце текста (на всякий случай)
+    // Append a sentinel so peek()/getChar() can stop at the end of the buffer.
     text.push_back('\0');
     currentPos = 0;
     return true;
 }
 
-// Работа с текущим символом
 char Scanner::peek(size_t offset) const {
     size_t pos = currentPos + offset;
     if (pos < text.size()) return text[pos];
     return '\0';
 }
+
 char Scanner::getChar() {
     if (currentPos < text.size()) return text[currentPos++];
     return '\0';
 }
+
 void Scanner::ungetChar() {
     if (currentPos > 0) --currentPos;
 }
 
-// Всевозможные классификации символов
+// Character classifiers
 bool Scanner::isLetter(char c) {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
@@ -54,7 +56,7 @@ bool Scanner::isIdentPart(char c) {
     return isLetter(c) || isDigit(c) || c == '_';
 }
 
-// Проверка ключевых слов: возвращает соответствующий KW_* или IDENT
+// Map an identifier to the corresponding keyword code, or IDENT otherwise.
 int Scanner::checkKeyword(const string& s) {
     if (s == "int") return KW_INT;
     if (s == "short") return KW_SHORT;
@@ -65,17 +67,16 @@ int Scanner::checkKeyword(const string& s) {
     if (s == "case") return KW_CASE;
     if (s == "default") return KW_DEFAULT;
     if (s == "break") return KW_BREAK;
-    if (s == "true") return KW_TRUE; // булевы константы распознаются как ключевые слова
+    if (s == "true") return KW_TRUE;   // boolean literals are keywords
     if (s == "false") return KW_FALSE;
     if (s == "main") return KW_MAIN;
     return IDENT;
 }
 
-// Пропустить пробелы и комментарии (// и /* ... */)
+// Skip whitespace and comments (both // and /* ... */).
 void Scanner::skipIgnored() {
     for (;;) {
         char c = peek();
-        // пробелы / табуляция / перевод строки / возврат каретки
         if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
             getChar();
             continue;
@@ -83,46 +84,38 @@ void Scanner::skipIgnored() {
         if (c == '/') {
             char n = peek(1);
             if (n == '/') {
-                // однострочный комментарий: убираем '//' и читаем до следующей строки
+                // Single-line comment: drop '//' and read until the end of the line.
                 getChar(); getChar();
                 while (peek() != '\n' && peek() != '\0') getChar();
                 continue;
             }
             else if (n == '*') {
-                // блочный комментарий /* ... */
-                getChar(); getChar(); // убираем '/*'
-                bool closed = false;
+                // Block comment /* ... */
+                getChar(); getChar(); // drop '/*'
                 while (peek() != '\0') {
                     char ch = getChar();
                     if (ch == '*' && peek() == '/') {
-                        getChar(); // убираем '/'
-                        closed = true;
+                        getChar(); // drop '/'
                         break;
                     }
-                }
-                if (!closed) {
-                    // незакрытый комментарий
-                    return;
                 }
                 continue;
             }
         }
-        break; // нет игнорируемых символов
+        break;
     }
 }
 
-// Основной метод лексера: получить следующую лексему
+// Read the next token from the source.
 int Scanner::getNextLex(string& outLex) {
     outLex.clear();
 
-    // Пропускаем игнорируемые символы
     skipIgnored();
 
-    // Конец текста
     char c = peek();
     if (c == '\0') { return T_END; }
 
-    // Идентификатор или ключевое слово
+    // Identifier or keyword
     if (isIdentStart(c)) {
         string lex;
         lex.push_back(getChar());
@@ -130,24 +123,21 @@ int Scanner::getNextLex(string& outLex) {
         int code = checkKeyword(lex);
         outLex = lex;
 
-        if (code == IDENT && lex.length() > MAX_CONST_LEN) return T_ERR;
+        if (code == IDENT && lex.length() > MAX_IDENT_LEN) return T_ERR;
 
         return code;
     }
 
-
-    // Десятичные и шестнадацатеричные числа
+    // Decimal and hexadecimal constants
     if (isDigit(c)) {
         char first = getChar();
         if (first == '0') {
             char nx = peek();
             if (nx == 'x' || nx == 'X') {
-                // требуется >=1 16-ричная цифра
-                getChar(); // убираем x/X
+                getChar(); // drop x/X
                 string lex = "0";
                 lex.push_back(nx);
                 if (!isHexDigit(peek())) {
-                    // ошибка: 0x без цифр
                     outLex = lex;
                     return T_ERR;
                 }
@@ -159,7 +149,7 @@ int Scanner::getNextLex(string& outLex) {
                 return HEX_CONST;
             }
             else if (isDigit(nx)) {
-                // цифра после 0 - читаем как DEC
+                // A digit after the leading 0: read as a decimal constant.
                 string lex;
                 lex.push_back(first);
                 while (isDigit(peek())) lex.push_back(getChar());
@@ -170,13 +160,11 @@ int Scanner::getNextLex(string& outLex) {
                 return DEC_CONST;
             }
             else {
-                // просто '0'
                 outLex = "0";
                 return DEC_CONST;
             }
         }
         else {
-            // первая цифра 1..9
             string lex;
             lex.push_back(first);
             while (isDigit(peek())) lex.push_back(getChar());
@@ -188,8 +176,7 @@ int Scanner::getNextLex(string& outLex) {
         }
     }
 
-    // Операторы и разделители
-    char n1 = peek(1);
+    // Operators and delimiters
     switch (c) {
     case '+': getChar(); outLex = "+"; return PLUS;
     case '-': getChar(); outLex = "-"; return MINUS;
@@ -209,8 +196,7 @@ int Scanner::getNextLex(string& outLex) {
     case '!':
         getChar();
         if (peek() == '=') { getChar(); outLex = "!="; return NEQ; }
-        // одиночный '!' — лексическая ошибка :)
-        outLex = "!"; return T_ERR;
+        outLex = "!"; return T_ERR; // a lone '!' is a lexical error
     case '<':
         getChar();
         if (peek() == '<') { getChar(); outLex = "<<"; return SHL; }
@@ -226,7 +212,7 @@ int Scanner::getNextLex(string& outLex) {
         outLex = "/";
         return DIV;
     default:
-        // неизвестный/недопустимый символ
+        // Unknown/invalid character
     {
         string s;
         s.push_back(getChar());
