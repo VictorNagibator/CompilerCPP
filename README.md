@@ -280,7 +280,3 @@ The suite covers:
 - **Interpreter** — assignments, function calls, `switch` fall-through/default/
   `break`, recursion and the recursion limit, plus error handling and
   analysis-only tree output.
-
-## License
-
-This project is released under the [MIT License](LICENSE).
